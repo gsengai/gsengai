@@ -26,8 +26,17 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm test
       - run: pnpm build
-      # Tokenless publish via OIDC trusted publishing — no NPM_TOKEN. Requires a trusted
-      # publisher configured for each @gsengai/* package on npmjs.com (repo + this workflow).
-      # Provenance is attached automatically. pnpm 10 supports OIDC; do NOT move to pnpm 11
-      # (it currently breaks OIDC publishing — pnpm#11513). The private demo app is skipped.
-      - run: pnpm -r publish --access public --no-git-checks --provenance
+      # OIDC trusted publishing needs npm >= 11.5.1 (Node 22 ships npm 10.x).
+      - run: npm install -g npm@latest
+      # Tokenless publish via OIDC (no NPM_TOKEN). Requires a trusted publisher configured
+      # for each @gsengai/* package on npmjs.com. Provenance is attached automatically.
+      # Per-package `pnpm publish` (not `pnpm -r`): recursive publish does not initiate the
+      # OIDC exchange on pnpm 10 (pnpm#11513). pnpm still rewrites workspace: deps on publish.
+      # Do NOT move to pnpm 11 (breaks OIDC). The private demo app is not in this list.
+      - run: |
+          set -e
+          for d in core openai anthropic ai-sdk c2pa disclosure; do
+            echo "::group::publish @gsengai/$d"
+            ( cd "packages/$d" && pnpm publish --access public --no-git-checks --provenance )
+            echo "::endgroup::"
+          done
