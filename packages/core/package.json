@@ -1,6 +1,6 @@
 {
   "name": "@gsengai/core",
-  "version": "0.1.0",
+  "version": "0.1.2",
   "private": false,
   "description": "Append-only, hash-chained evidence store, text output fingerprinting, and audit exports (JSONL, CSV, Markdown audit report). Supports compliance with EU AI Act Article 50 and California SB 942; hashes and metadata only, raw content never persists. Not legal advice.",
   "license": "Apache-2.0",

@@ -1,6 +1,6 @@
 {
   "name": "@gsengai/openai",
-  "version": "0.1.0",
+  "version": "0.1.2",
   "private": false,
   "description": "Evidence-logging wrapper for the OpenAI Node SDK (chat.completions + responses, streaming included). Supports compliance with EU AI Act Article 50 and California SB 942; never mutates or blocks model responses. Not legal advice.",
   "license": "Apache-2.0",
