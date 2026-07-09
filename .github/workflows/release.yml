@@ -16,10 +16,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
+      # No registry-url: setup-node's registry-url injects a placeholder NODE_AUTH_TOKEN
+      # that suppresses OIDC (actions/setup-node#1440). pnpm 10 publishes to the default
+      # registry via OIDC without it.
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-          registry-url: https://registry.npmjs.org
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm test
