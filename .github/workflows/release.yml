@@ -16,27 +16,19 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
-      # No registry-url: setup-node's registry-url injects a placeholder NODE_AUTH_TOKEN
-      # that suppresses OIDC (actions/setup-node#1440). pnpm 10 publishes to the default
-      # registry via OIDC without it.
       - uses: actions/setup-node@v4
         with:
           node-version: 22
+          registry-url: https://registry.npmjs.org
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm test
       - run: pnpm build
-      # OIDC trusted publishing needs npm >= 11.5.1 (Node 22 ships npm 10.x).
-      - run: npm install -g npm@latest
-      # Tokenless publish via OIDC (no NPM_TOKEN). Requires a trusted publisher configured
-      # for each @gsengai/* package on npmjs.com. Provenance is attached automatically.
-      # Per-package `pnpm publish` (not `pnpm -r`): recursive publish does not initiate the
-      # OIDC exchange on pnpm 10 (pnpm#11513). pnpm still rewrites workspace: deps on publish.
-      # Do NOT move to pnpm 11 (breaks OIDC). The private demo app is not in this list.
-      - run: |
-          set -e
-          for d in core openai anthropic ai-sdk c2pa disclosure; do
-            echo "::group::publish @gsengai/$d"
-            ( cd "packages/$d" && pnpm publish --access public --no-git-checks --provenance )
-            echo "::endgroup::"
-          done
+      # Token-based publish (NPM_TOKEN). Requires: account write-2FA off (done), and the
+      # packages' publishing-access allowing tokens (do NOT set "disallow tokens"). OIDC via
+      # pnpm was attempted but hit upstream tooling bugs (placeholder token, recursive not
+      # doing the OIDC exchange, broken provenance module); revisit when pnpm matures.
+      # The private demo app is skipped.
+      - run: pnpm -r publish --access public --no-git-checks --provenance
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
