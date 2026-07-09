@@ -13,6 +13,7 @@ The roadmap below is a set of directions, not dated commitments. Priorities shif
 
 ## Near-term
 
+- Cross-platform C2PA signing — a `c2patool` fallback so image signing runs on Linux and Windows, not only macOS on Apple Silicon (a limitation of the current `@contentauth/c2pa-node` build).
 - Publish the packages to npm so they can be installed without building from source.
 - A public hosted version of the interactive demo (it runs locally today).
 

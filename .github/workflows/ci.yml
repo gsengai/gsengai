@@ -7,7 +7,10 @@ on:
 
 jobs:
   gates:
-    runs-on: ubuntu-latest
+    # macOS on Apple Silicon: currently the only platform where the upstream
+    # @contentauth/c2pa-node binary loads. Tracked for a cross-platform c2patool
+    # fallback — see ROADMAP.md.
+    runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4

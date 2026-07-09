@@ -10,7 +10,9 @@ permissions:
 
 jobs:
   publish:
-    runs-on: ubuntu-latest
+    # macOS on Apple Silicon: currently the only platform where the upstream
+    # @contentauth/c2pa-node binary loads (the release runs the test suite).
+    runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
