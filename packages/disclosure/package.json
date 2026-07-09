@@ -1,0 +1,87 @@
+{
+  "name": "@gsengai/disclosure",
+  "version": "0.1.0",
+  "private": false,
+  "description": "AI disclosure UI kit: React components and plain-HTML equivalents for Article 50 interaction notices and AI-generated content labels, bundling the official EU transparency icons (EN/DE/FR). Supports compliance with EU AI Act Article 50 and California SB 942. Not legal advice.",
+  "license": "Apache-2.0",
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      },
+      "require": {
+        "types": "./dist/index.d.cts",
+        "default": "./dist/index.cjs"
+      }
+    },
+    "./html": {
+      "import": {
+        "types": "./dist/html.d.ts",
+        "default": "./dist/html.js"
+      },
+      "require": {
+        "types": "./dist/html.d.cts",
+        "default": "./dist/html.cjs"
+      }
+    },
+    "./disclosure.css": "./disclosure.css",
+    "./icons/*": "./icons/*"
+  },
+  "files": [
+    "dist",
+    "icons",
+    "disclosure.css"
+  ],
+  "scripts": {
+    "build": "tsup"
+  },
+  "peerDependencies": {
+    "react": ">=18"
+  },
+  "peerDependenciesMeta": {
+    "react": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@types/react": "^19.0.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "tsup": "^8.0.0",
+    "typescript": "^5.6.0"
+  },
+  "author": "Dominik Ertl",
+  "keywords": [
+    "eu-ai-act",
+    "ai-act",
+    "article-50",
+    "sb-942",
+    "ai-transparency",
+    "ai-disclosure",
+    "ai-compliance",
+    "content-provenance",
+    "react",
+    "ui",
+    "disclosure",
+    "transparency-notice",
+    "labeling"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/gsengai/gsengai.git",
+    "directory": "packages/disclosure"
+  },
+  "homepage": "https://github.com/gsengai/gsengai/tree/main/packages/disclosure#readme",
+  "bugs": "https://github.com/gsengai/gsengai/issues",
+  "publishConfig": {
+    "access": "public"
+  }
+}

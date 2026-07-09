@@ -1,0 +1,23 @@
+{
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "paths": {
+      "@gsengai/core": ["./packages/core/src/index.ts"],
+      "@gsengai/openai": ["./packages/openai/src/index.ts"],
+      "@gsengai/anthropic": ["./packages/anthropic/src/index.ts"],
+      "@gsengai/ai-sdk": ["./packages/ai-sdk/src/index.ts"],
+      "@gsengai/c2pa": ["./packages/c2pa/src/index.ts"],
+      "@gsengai/disclosure": ["./packages/disclosure/src/index.tsx"],
+      "@gsengai/disclosure/html": ["./packages/disclosure/src/html.ts"]
+    }
+  },
+  "include": [
+    "packages/*/src/**/*.ts",
+    "packages/*/src/**/*.tsx",
+    "packages/*/test/**/*.ts",
+    "packages/*/test/**/*.tsx",
+    "packages/*/tsup.config.ts",
+    "examples/**/*.ts",
+    "vitest.config.ts"
+  ]
+}

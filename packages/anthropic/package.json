@@ -1,0 +1,68 @@
+{
+  "name": "@gsengai/anthropic",
+  "version": "0.1.0",
+  "private": false,
+  "description": "Evidence-logging wrapper for the Anthropic TypeScript SDK (messages.create + messages.stream, streaming included). Supports compliance with EU AI Act Article 50 and California SB 942; never mutates or blocks model responses. Not legal advice.",
+  "license": "Apache-2.0",
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      },
+      "require": {
+        "types": "./dist/index.d.cts",
+        "default": "./dist/index.cjs"
+      }
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsup"
+  },
+  "dependencies": {
+    "@gsengai/core": "workspace:^"
+  },
+  "peerDependencies": {
+    "@anthropic-ai/sdk": ">=0.39.0"
+  },
+  "devDependencies": {
+    "@anthropic-ai/sdk": ">=0.39.0",
+    "tsup": "^8.0.0",
+    "typescript": "^5.6.0"
+  },
+  "author": "Dominik Ertl",
+  "keywords": [
+    "eu-ai-act",
+    "ai-act",
+    "article-50",
+    "sb-942",
+    "ai-transparency",
+    "ai-disclosure",
+    "ai-compliance",
+    "content-provenance",
+    "anthropic",
+    "claude",
+    "llm",
+    "logging"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/gsengai/gsengai.git",
+    "directory": "packages/anthropic"
+  },
+  "homepage": "https://github.com/gsengai/gsengai/tree/main/packages/anthropic#readme",
+  "bugs": "https://github.com/gsengai/gsengai/issues",
+  "publishConfig": {
+    "access": "public"
+  }
+}

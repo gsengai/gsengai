@@ -1,0 +1,70 @@
+# dependencies / package managers
+node_modules/
+.pnpm-store/
+.npm/
+.yarn/
+
+# build output
+dist/
+build/
+lib/
+# ...but apps/demo/lib is source, not build output — keep it tracked
+!apps/demo/lib/
+*.tsbuildinfo
+.next/
+.vercel/
+
+# caches
+.turbo/
+.cache/
+.parcel-cache/
+.vite/
+
+# evidence store files / local databases
+*.db
+*.db-wal
+*.db-shm
+*.sqlite
+*.sqlite-wal
+*.sqlite-shm
+
+# quickstart / example output
+.out/
+output/
+outputs/
+
+# environment / secrets
+.env*
+!.env.example
+!.env.template
+
+# coverage, test artifacts & logs
+coverage/
+.nyc_output/
+test-results/
+playwright-report/
+junit.xml
+*.log
+
+# temporary files
+tmp/
+temp/
+*.tmp
+*.bak
+*.swp
+
+# editor / IDE
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+.idea/
+
+# local agent context
+.claude/
+.claude.local/
+
+# OS noise
+.DS_Store
+Thumbs.db

@@ -1,0 +1,55 @@
+/* SPDX-License-Identifier: Apache-2.0 */
+/* @gsengai/disclosure — one shipped stylesheet for both the React and the HTML entries.
+   Neutral defaults tuned for legibility and contrast (CoP: disclosures must be clear,
+   distinguishable, and recognizable without further interaction). Override freely via
+   the className prop / your own selectors. */
+
+.gsengai-disclosure {
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45em;
+  font-family: inherit;
+  font-size: 0.9375rem;
+  line-height: 1.4;
+}
+
+.gsengai-disclosure .gsengai-icon {
+  display: inline-flex;
+  flex: none;
+}
+
+.gsengai-disclosure .gsengai-icon svg {
+  display: block;
+  height: 1.4em;
+  width: auto;
+}
+
+.gsengai-disclosure .gsengai-disclosure-text {
+  display: inline-block;
+}
+
+/* Art. 50(1) interaction notice: a block-level banner, visible at first interaction. */
+.gsengai-interaction-notice {
+  display: flex;
+  padding: 0.6em 0.9em;
+  border: 1px solid currentColor;
+  border-radius: 6px;
+}
+
+/* Art. 50(4) badge: compact inline chip placed on or next to the content. */
+.gsengai-ai-badge {
+  padding: 0.25em 0.6em;
+  border: 1px solid currentColor;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+/* Art. 50(4) deepfake / public-interest-text label: prominent block-level disclosure. */
+.gsengai-synthetic-label {
+  display: flex;
+  padding: 0.6em 0.9em;
+  border: 1px solid currentColor;
+  border-left-width: 4px;
+  border-radius: 6px;
+}

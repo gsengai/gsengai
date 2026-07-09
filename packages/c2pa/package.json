@@ -1,0 +1,67 @@
+{
+  "name": "@gsengai/c2pa",
+  "version": "0.1.0",
+  "private": false,
+  "description": "C2PA image signing for AI-generated media: signed manifests with AI-generation assertions, ingredient preservation, evidence record per signing. Supports compliance with EU AI Act Article 50 and California SB 942. Not legal advice.",
+  "license": "Apache-2.0",
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      },
+      "require": {
+        "types": "./dist/index.d.cts",
+        "default": "./dist/index.cjs"
+      }
+    }
+  },
+  "files": [
+    "dist",
+    "dev-certs"
+  ],
+  "scripts": {
+    "build": "tsup"
+  },
+  "dependencies": {
+    "@gsengai/core": "workspace:^",
+    "@contentauth/c2pa-node": "0.6.0"
+  },
+  "devDependencies": {
+    "@contentauth/c2pa-types": "^0.7.0",
+    "tsup": "^8.0.0",
+    "typescript": "^5.6.0"
+  },
+  "author": "Dominik Ertl",
+  "keywords": [
+    "eu-ai-act",
+    "ai-act",
+    "article-50",
+    "sb-942",
+    "ai-transparency",
+    "ai-disclosure",
+    "ai-compliance",
+    "content-provenance",
+    "c2pa",
+    "content-credentials",
+    "provenance",
+    "image-signing"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/gsengai/gsengai.git",
+    "directory": "packages/c2pa"
+  },
+  "homepage": "https://github.com/gsengai/gsengai/tree/main/packages/c2pa#readme",
+  "bugs": "https://github.com/gsengai/gsengai/issues",
+  "publishConfig": {
+    "access": "public"
+  }
+}

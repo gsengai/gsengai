@@ -1,0 +1,11 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`snapshots > <AIGeneratedBadge/> markup is stable (text part; icons pinned by icons.test) 1`] = `"<span class="gsengai-disclosure gsengai-ai-badge gsengai-ai-badge--generated" role="note" aria-label="Fully AI-generated"><span class="gsengai-disclosure-text">Fully AI-generated</span></span>"`;
+
+exports[`snapshots > <AIGeneratedBadge/> markup is stable (text part; icons pinned by icons.test) 2`] = `"<span class="gsengai-disclosure gsengai-ai-badge gsengai-ai-badge--basic" role="note" aria-label="AI-generated content"><span class="gsengai-disclosure-text">AI-generated content</span></span>"`;
+
+exports[`snapshots > <AIInteractionNotice/> markup is stable 1`] = `"<div class="gsengai-disclosure gsengai-interaction-notice" role="note" aria-label="You are interacting with an AI system."><span class="gsengai-disclosure-text">You are interacting with an AI system.</span></div>"`;
+
+exports[`snapshots > <AIInteractionNotice/> markup is stable 2`] = `"<div class="gsengai-disclosure gsengai-interaction-notice" role="note" aria-label="Sie interagieren mit einem KI-System."><span class="gsengai-disclosure-text">Sie interagieren mit einem KI-System.</span></div>"`;
+
+exports[`snapshots > <SyntheticContentLabel/> markup is stable 1`] = `"<div class="gsengai-disclosure gsengai-synthetic-label gsengai-synthetic-label--deepfake" role="note" aria-label="Ce contenu a été généré ou manipulé artificiellement par IA."><span class="gsengai-icon" aria-hidden="true"><svg…/></span><span class="gsengai-disclosure-text">Ce contenu a été généré ou manipulé artificiellement par IA.</span></div>"`;

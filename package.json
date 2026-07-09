@@ -1,0 +1,49 @@
+{
+  "name": "gsengai-monorepo",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Supports compliance with EU AI Act Article 50 and California SB 942: text output evidence logging and fingerprinting, C2PA media signing, append-only evidence store, disclosure UI. Not legal advice.",
+  "license": "Apache-2.0",
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "packageManager": "pnpm@10.30.3",
+  "scripts": {
+    "build": "pnpm -r build",
+    "test": "vitest run",
+    "lint": "biome check .",
+    "lint:fix": "biome check --write .",
+    "typecheck": "tsc --noEmit && pnpm --filter @gsengai/demo typecheck",
+    "demo": "pnpm --filter @gsengai/demo^... build && pnpm --filter @gsengai/demo dev",
+    "quickstart": "tsx examples/quickstart.ts",
+    "audit-export": "tsx examples/audit-export.ts"
+  },
+  "devDependencies": {
+    "@gsengai/ai-sdk": "workspace:*",
+    "@gsengai/anthropic": "workspace:*",
+    "@gsengai/core": "workspace:*",
+    "@gsengai/disclosure": "workspace:*",
+    "@gsengai/openai": "workspace:*",
+    "@ai-sdk/openai": "^3.0.0",
+    "@anthropic-ai/sdk": ">=0.39.0",
+    "@biomejs/biome": "^2.0.0",
+    "@types/node": "^22.10.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.2.3",
+    "ai": "^7.0.0",
+    "openai": "^6.0.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.6.0",
+    "vitest": "^3.0.0"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "@contentauth/c2pa-node",
+      "better-sqlite3",
+      "esbuild"
+    ]
+  }
+}
