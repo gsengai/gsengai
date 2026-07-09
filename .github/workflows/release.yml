@@ -1,43 +1,29 @@
-name: Release
+name: Release verification
 
 on:
   release:
     types: [published]
 
+# Publishing to npm is currently MANUAL — see RELEASING.md. Automating it from CI (OIDC trusted
+# publishing) is blocked by upstream tooling: the org enforces 2FA (tokens get EOTP and are being
+# deprecated), pnpm's recursive publish doesn't do the OIDC exchange, and the CI npm's provenance
+# path is missing `sigstore`. Tracked in issue #2. This workflow only verifies that the tagged
+# commit is healthy — it does not publish.
+
 permissions:
   contents: read
-  id-token: write # OIDC trusted publishing (tokenless, 2FA-exempt) + automatic provenance
 
 jobs:
-  publish:
-    # macOS on Apple Silicon: currently the only platform where the upstream
-    # @contentauth/c2pa-node binary loads (the release runs the test suite). Cross-platform
-    # c2patool fallback is tracked in issue #1.
+  verify:
+    # macOS on Apple Silicon: the only platform where @contentauth/c2pa-node loads (issue #1).
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
-      # No registry-url: it injects a placeholder NODE_AUTH_TOKEN that suppresses OIDC
-      # (actions/setup-node#1440).
       - uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: pnpm
-      # OIDC trusted publishing needs npm >= 11.5.1 (Node 22 ships npm 10.x).
-      - run: npm install -g npm@latest
       - run: pnpm install --frozen-lockfile
       - run: pnpm test
       - run: pnpm build
-      # Tokenless OIDC publish (no NPM_TOKEN). A trusted publisher is configured per package
-      # on npm; provenance is generated automatically server-side, so NO --provenance flag
-      # (it triggers a client-side sigstore path that breaks in this runner). Per-package
-      # publish (not `pnpm -r`): recursive doesn't initiate the OIDC exchange (pnpm#11513).
-      # pnpm still rewrites workspace: deps on publish. Do NOT move to pnpm 11 (breaks OIDC).
-      # The private demo app is not in this list.
-      - run: |
-          set -e
-          for d in core openai anthropic ai-sdk c2pa disclosure; do
-            echo "::group::publish @gsengai/$d"
-            ( cd "packages/$d" && pnpm publish --access public --no-git-checks )
-            echo "::endgroup::"
-          done
