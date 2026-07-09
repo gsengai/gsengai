@@ -27,7 +27,7 @@ pnpm add @gsengai/core
 pnpm add @gsengai/openai @gsengai/anthropic @gsengai/ai-sdk @gsengai/c2pa @gsengai/disclosure
 ```
 
-Requires Node >= 22. Before the first published release, build from source — see [docs/production.md](./docs/production.md).
+Requires Node >= 22. The `@gsengai/*` packages are published on npm. For production integration notes, see [docs/production.md](./docs/production.md).
 
 **Platform support:** text logging and fingerprinting, the evidence store, audit export, and the disclosure kit run anywhere Node 22 runs. **C2PA image signing currently requires macOS on Apple Silicon** — the upstream `@contentauth/c2pa-node` prebuilt binaries are unavailable for other platforms in this release. Cross-platform signing through a `c2patool` fallback is on the [roadmap](./ROADMAP.md).
 
