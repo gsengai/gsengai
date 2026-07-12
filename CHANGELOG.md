@@ -2,6 +2,17 @@
 
 All notable changes to this project are documented here. The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project aims to follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.0] — 2026-07-12
+
+### Added
+
+- **Cross-platform C2PA image signing** ([#1](https://github.com/gsengai/gsengai/issues/1)): `@gsengai/c2pa` now signs on Linux, Windows, and Intel macs through an automatic [c2patool](https://github.com/contentauth/c2pa-rs/tree/main/cli) fallback, alongside the native `@contentauth/c2pa-node` path on macOS Apple Silicon. The backend is auto-detected at first use; `GSENGAI_C2PA_BACKEND=native|c2patool` forces one, and the c2patool binary can be pointed at via `GSENGAI_C2PATOOL_PATH` or the new `c2patoolPath` option of `createImageSigner`. Both backends produce equivalent manifests, keep the offline discipline (no OCSP, no remote fetches, no TSA), and never copy private key material. See the platform note in `docs/production.md`.
+- CI now runs an ubuntu + macOS matrix so both signing backends stay covered.
+
+### Changed
+
+- Correction to the 0.1.2 notes below: OIDC trusted publishing was reverted (blocked upstream, tracked in [#2](https://github.com/gsengai/gsengai/issues/2)), so 0.1.2 was tagged but never published to npm. Releases are published manually per `RELEASING.md`; this release supersedes 0.1.2.
+
 ## [0.1.2] — 2026-07-09
 
 ### Changed
