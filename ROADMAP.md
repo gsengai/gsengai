@@ -8,13 +8,11 @@ The roadmap below is a set of directions, not dated commitments. Priorities shif
 
 - Append-only, hash-chained evidence store (SQLite) with JSONL, CSV, and Markdown audit-report exports, and the `gsengai-audit` CLI.
 - Text output logging and fingerprinting through wrappers for the OpenAI, Anthropic, and Vercel AI SDKs. The model response is returned unmodified; fail-open by default.
-- C2PA signing for PNG and JPEG, preserving any existing manifest as a chained ingredient.
+- C2PA signing for PNG and JPEG, preserving any existing manifest as a chained ingredient. Cross-platform: native `@contentauth/c2pa-node` on macOS (Apple Silicon), automatic `c2patool` fallback on Linux, Windows, and Intel macs.
 - A disclosure UI kit (React and plain HTML) with the official EU transparency icons in English, German, and French.
 
 ## Near-term
 
-- Cross-platform C2PA signing — a `c2patool` fallback so image signing runs on Linux and Windows, not only macOS on Apple Silicon (a limitation of the current `@contentauth/c2pa-node` build).
-- Publish the packages to npm so they can be installed without building from source.
 - A public hosted version of the interactive demo (it runs locally today).
 
 ## Under consideration

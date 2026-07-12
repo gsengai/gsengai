@@ -1,8 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 import { readFile } from "node:fs/promises";
-import { Reader } from "@contentauth/c2pa-node";
+import { resolveBackend } from "./backend";
 import { detectImageMime } from "./mime";
-import { OFFLINE_VALIDATE_SETTINGS } from "./settings";
 
 /** Validation status codes as reported by the C2PA validator, grouped by outcome. */
 export interface ValidationStatusCodes {
@@ -29,14 +28,6 @@ export interface ManifestSummary {
   manifestLabels: string[];
 }
 
-interface ValidationResultsShape {
-  activeManifest?: {
-    success?: { code: string }[];
-    informational?: { code: string }[];
-    failure?: { code: string }[];
-  };
-}
-
 /**
  * Read and locally validate the C2PA manifest store of a PNG/JPEG asset.
  * Returns null when the asset carries no manifest. Never fetches anything
@@ -46,20 +37,13 @@ interface ValidationResultsShape {
 export async function readManifest(input: string | Uint8Array): Promise<ManifestSummary | null> {
   const bytes = typeof input === "string" ? await readFile(input) : Buffer.from(input);
   const mimeType = detectImageMime(bytes, "input");
-  const reader = await Reader.fromAsset({ buffer: bytes, mimeType }, OFFLINE_VALIDATE_SETTINGS);
-  if (!reader) {
+  const backend = await resolveBackend();
+  const store = await backend.validateStore(bytes, mimeType);
+  const activeLabel = store?.active_manifest;
+  if (!store || !activeLabel) {
     return null;
   }
-  const activeLabel = reader.activeLabel();
-  if (!activeLabel) {
-    return null;
-  }
-  const store = reader.json() as {
-    manifests?: Record<string, unknown>;
-    validation_state?: string;
-    validation_results?: ValidationResultsShape;
-  };
-  const active = reader.getActive();
+  const active = store.manifests?.[activeLabel];
   const results = store.validation_results?.activeManifest;
   return {
     activeLabel,

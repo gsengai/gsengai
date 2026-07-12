@@ -4,7 +4,7 @@ This project supports compliance with EU AI Act Article 50 and California SB 942
 
 ## 1. Get the packages
 
-Until the packages are published to npm, install by vendoring this monorepo: clone it, run `pnpm install`, and depend on the workspace packages. Once published, install the scoped `@gsengai/*` packages directly. The README's `import` examples assume the published packages.
+Install the scoped `@gsengai/*` packages from npm. Vendoring the monorepo (clone, `pnpm install`, depend on the workspace packages) also works if you prefer to pin to source.
 
 ## 2. Signing certificates
 
@@ -12,13 +12,13 @@ The bundled development certificates are untrusted by design: anything signed wi
 
 Keys are read from files today. Signing from a KMS or HSM is on the roadmap; until then, protect the key file with your platform's secret handling.
 
-**Platform note:** with `@contentauth/c2pa-node@0.6.0`, the native signing binary currently loads only on macOS (Apple Silicon) — its prebuilt binaries are unavailable for Linux, Windows, and Intel macs in this release. Cross-platform signing through a `c2patool` fallback is planned (see the roadmap). The text, evidence-store, audit, and disclosure features are pure JavaScript and run anywhere Node 22 runs.
+**Platform note:** image signing resolves one of two equivalent backends at first use. On macOS (Apple Silicon) the native `@contentauth/c2pa-node` binary is used directly. Everywhere else — Linux, Windows, Intel macs — signing shells out to [c2patool](https://github.com/contentauth/c2pa-rs/tree/main/cli), contentauth's standalone CLI built on the same c2pa-rs library, which you install once: download a prebuilt binary from the [c2pa-rs releases](https://github.com/contentauth/c2pa-rs/releases) (look for the `c2patool-v*` assets) or run `cargo install c2patool`, and put it on `PATH`. The fallback is automatic; to control it explicitly, set `GSENGAI_C2PATOOL_PATH` (or the `c2patoolPath` option of `createImageSigner`) to the binary, or force a backend with `GSENGAI_C2PA_BACKEND=native|c2patool`. Both backends produce the same manifests, keep the same offline discipline (no OCSP, no remote fetches, no TSA), and never copy your private key — c2patool receives it as the file path you configured. The text, evidence-store, audit, and disclosure features are pure JavaScript and run anywhere Node 22 runs.
 
 ## 3. Evidence-store topology
 
 The default store is a single-writer SQLite file, which fits a single instance well. If you run the feature across several instances or containers writing to one store, route writes through a single dedicated writer, or keep a store per instance and merge for audit. A shared-store mode is on the roadmap.
 
-Two native modules (`better-sqlite3` and the C2PA signer) compile per platform; budget for this on Alpine, ARM, and serverless targets.
+One native module (`better-sqlite3`) compiles per platform; budget for this on Alpine, ARM, and serverless targets. The C2PA signer needs no compilation — it uses the prebuilt native binary where available and the `c2patool` subprocess elsewhere (see the platform note above).
 
 ## 4. Decide the failure behavior
 

@@ -2,7 +2,6 @@
 import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { Reader } from "@contentauth/c2pa-node";
 import {
   createImageSigner,
   GENERATOR_ASSERTION_LABEL,
@@ -17,17 +16,11 @@ import {
   sha256Hex,
 } from "@gsengai/core";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+// Backend-routed asset reading so this suite runs wherever the package does —
+// native c2pa-node or the c2patool fallback (issue #1).
+import { type ManifestJson, resolveBackend } from "../src/backend";
+import type { ImageMime } from "../src/mime";
 import { makeJpeg, makePng } from "./fixtures";
-
-const OFFLINE_READ = {
-  verify: {
-    verify_after_reading: false,
-    verify_trust: false,
-    ocsp_fetch: false,
-    remote_manifest_fetch: false,
-  },
-  trust: { verify_trust_list: false },
-};
 
 interface ActionShape {
   action: string;
@@ -36,9 +29,22 @@ interface ActionShape {
   when?: string;
 }
 
-async function actionsOf(bytes: Buffer, mimeType: string): Promise<ActionShape[]> {
-  const reader = await Reader.fromAsset({ buffer: bytes, mimeType }, OFFLINE_READ);
-  const assertions = reader?.getActive()?.assertions ?? [];
+async function activeManifestOf(bytes: Buffer, mimeType: ImageMime): Promise<ManifestJson | null> {
+  const backend = await resolveBackend();
+  const store = await backend.peekStore(bytes, mimeType);
+  if (!store?.active_manifest) {
+    return null;
+  }
+  return store.manifests?.[store.active_manifest] ?? null;
+}
+
+async function activeLabelOf(bytes: Buffer, mimeType: ImageMime): Promise<string | null> {
+  const backend = await resolveBackend();
+  return (await backend.peekStore(bytes, mimeType))?.active_manifest ?? null;
+}
+
+async function actionsOf(bytes: Buffer, mimeType: ImageMime): Promise<ActionShape[]> {
+  const assertions = (await activeManifestOf(bytes, mimeType))?.assertions ?? [];
   return assertions
     .filter((a) => a.label.startsWith("c2pa.actions"))
     .flatMap((a) => (a.data as { actions: ActionShape[] }).actions);
@@ -85,11 +91,7 @@ describe("signImage — PNG/JPEG signing (PRD B1/B2)", () => {
     expect(result.manifestLabel).toMatch(/^urn:c2pa:/);
 
     const signedBytes = readFileSync(outPath);
-    const reader = await Reader.fromAsset(
-      { buffer: signedBytes, mimeType: "image/png" },
-      OFFLINE_READ,
-    );
-    expect(reader?.activeLabel()).toBe(result.manifestLabel);
+    expect(await activeLabelOf(signedBytes, "image/png")).toBe(result.manifestLabel);
 
     const actions = await actionsOf(signedBytes, "image/png");
     const created = actions.find((a) => a.action === "c2pa.created");
@@ -98,11 +100,12 @@ describe("signImage — PNG/JPEG signing (PRD B1/B2)", () => {
     expect(created?.softwareAgent?.name).toBe("test-image-model-1");
     expect(created?.when).toBeTruthy();
 
-    const generatorNames = (reader?.getActive()?.claim_generator_info ?? []).map((g) => g.name);
+    const active = await activeManifestOf(signedBytes, "image/png");
+    const generatorNames = (active?.claim_generator_info ?? []).map((g) => g.name);
     expect(generatorNames).toContain("gsengai-c2pa");
-    const generatorAssertion = reader
-      ?.getActive()
-      ?.assertions?.find((a) => a.label === GENERATOR_ASSERTION_LABEL);
+    const generatorAssertion = active?.assertions?.find(
+      (a) => a.label === GENERATOR_ASSERTION_LABEL,
+    );
     expect(generatorAssertion?.data).toMatchObject({ model: "test-image-model-1" });
   });
 
@@ -198,11 +201,7 @@ describe("signImage — ingredient preservation (PRD B3, ADR-0015)", () => {
     const first = await signer.signImage({ input: makePng(), model: "model-a" });
     const second = await signer.signImage({ input: first.output as Buffer, model: "model-b" });
 
-    const reader = await Reader.fromAsset(
-      { buffer: second.output as Buffer, mimeType: "image/png" },
-      OFFLINE_READ,
-    );
-    const active = reader?.getActive();
+    const active = await activeManifestOf(second.output as Buffer, "image/png");
     const parent = active?.ingredients?.find((i) => i.relationship === "parentOf");
     expect(parent).toBeDefined();
     expect(parent?.active_manifest).toBe(first.manifestLabel);

@@ -15,10 +15,18 @@ permissions:
 
 jobs:
   verify:
-    # macOS on Apple Silicon: the only platform where @contentauth/c2pa-node loads (issue #1).
-    runs-on: macos-latest
+    # Ubuntu with the pinned c2patool fallback backend (issue #1); the macOS
+    # native path is covered by the CI matrix on every push.
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - name: Install c2patool (pinned) — cross-platform C2PA signing backend
+        run: |
+          cd "$RUNNER_TEMP"
+          curl -sSfL -o c2patool.tar.gz "https://github.com/contentauth/c2pa-rs/releases/download/c2patool-v0.26.70/c2patool-v0.26.70-x86_64-unknown-linux-gnu.tar.gz"
+          echo "7ad4d0958ca9f930b8048cc36f937f4203ba5335b1e726b0982a6e7f604942aa  c2patool.tar.gz" | sha256sum -c -
+          tar -xzf c2patool.tar.gz
+          echo "$RUNNER_TEMP/c2patool" >> "$GITHUB_PATH"
       - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v4
         with:

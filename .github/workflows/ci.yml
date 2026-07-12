@@ -7,12 +7,25 @@ on:
 
 jobs:
   gates:
-    # macOS on Apple Silicon: currently the only platform where the upstream
-    # @contentauth/c2pa-node binary loads. Tracked for a cross-platform c2patool
-    # fallback — see ROADMAP.md.
-    runs-on: macos-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # Both signing backends stay covered: macOS (Apple Silicon) exercises
+        # the native @contentauth/c2pa-node binary, Ubuntu exercises the
+        # c2patool fallback (issue #1) — the upstream native binary only loads
+        # on macOS arm64.
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
+      - name: Install c2patool (pinned) — cross-platform C2PA signing backend
+        if: runner.os == 'Linux'
+        run: |
+          cd "$RUNNER_TEMP"
+          curl -sSfL -o c2patool.tar.gz "https://github.com/contentauth/c2pa-rs/releases/download/c2patool-v0.26.70/c2patool-v0.26.70-x86_64-unknown-linux-gnu.tar.gz"
+          echo "7ad4d0958ca9f930b8048cc36f937f4203ba5335b1e726b0982a6e7f604942aa  c2patool.tar.gz" | sha256sum -c -
+          tar -xzf c2patool.tar.gz
+          echo "$RUNNER_TEMP/c2patool" >> "$GITHUB_PATH"
       - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v4
         with:

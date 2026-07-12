@@ -3,17 +3,11 @@ import { readFileSync } from "node:fs";
 import { readFile } from "node:fs/promises";
 import { basename } from "node:path";
 import { fileURLToPath } from "node:url";
-import { Builder, LocalSigner, Reader } from "@contentauth/c2pa-node";
 import { type EvidenceRecord, type EvidenceStore, type FailMode, safeAppend } from "@gsengai/core";
+import { resolveBackend } from "./backend";
 import { detectImageMime } from "./mime";
-import { OFFLINE_NO_VERIFY_SETTINGS } from "./settings";
 
-const VERSION = "0.1.0";
-const GENERATOR_NAME = "gsengai-c2pa";
-/** Label of the custom assertion carrying generator/model info on every signing (ADR-0019). */
-export const GENERATOR_ASSERTION_LABEL = "org.gsengai.generator";
-export const TRAINED_ALGORITHMIC_MEDIA =
-  "http://cv.iptc.org/newscodes/digitalsourcetype/trainedAlgorithmicMedia";
+export { GENERATOR_ASSERTION_LABEL, TRAINED_ALGORITHMIC_MEDIA } from "./constants";
 
 const DEV_CERT_PATH = fileURLToPath(new URL("../dev-certs/dev-cert-chain.pem", import.meta.url));
 const DEV_KEY_PATH = fileURLToPath(new URL("../dev-certs/dev-private-key.pem", import.meta.url));
@@ -28,6 +22,13 @@ export interface CreateImageSignerOptions {
   certPath?: string;
   /** PKCS#8 PEM private key for the leaf certificate. Defaults to the bundled DEV key. */
   keyPath?: string;
+  /**
+   * Path to a c2patool binary for the cross-platform fallback backend.
+   * Defaults to $GSENGAI_C2PATOOL_PATH, then `c2patool` on PATH. Only
+   * consulted when the native @contentauth/c2pa-node module cannot load (or
+   * when GSENGAI_C2PA_BACKEND=c2patool forces the fallback).
+   */
+  c2patoolPath?: string;
   /**
    * Applies to evidence-store failures only (ADR-0017): `open` (default) warns,
    * counts the lost record, and still returns the signed asset; `strict` throws.
@@ -84,10 +85,11 @@ export function createImageSigner(options: CreateImageSignerOptions): ImageSigne
     throw new TypeError("gsengai: systemId must be a non-empty string");
   }
   warnIfDevCerts(options.certPath, options.keyPath);
+  const certPath = options.certPath ?? DEV_CERT_PATH;
+  const keyPath = options.keyPath ?? DEV_KEY_PATH;
   // Read eagerly so a bad path fails at construction, not at first sign.
-  const cert = readFileSync(options.certPath ?? DEV_CERT_PATH);
-  const key = readFileSync(options.keyPath ?? DEV_KEY_PATH);
-  const signer = LocalSigner.newSigner(cert, key, "es256"); // no TSA URL — offline by design
+  const certBytes = readFileSync(certPath);
+  const keyBytes = readFileSync(keyPath);
 
   return {
     async signImage(sign: SignImageOptions): Promise<SignImageResult> {
@@ -98,12 +100,10 @@ export function createImageSigner(options: CreateImageSignerOptions): ImageSigne
         typeof sign.input === "string" ? await readFile(sign.input) : Buffer.from(sign.input);
       const mimeType = detectImageMime(inputBytes, "signImage input");
 
+      const backend = await resolveBackend(options.c2patoolPath);
       // ADR-0015 intent mapping: existing manifest → edit + parent ingredient
       // (chained, never overwritten); none → create + trainedAlgorithmicMedia.
-      const existing = await Reader.fromAsset(
-        { buffer: inputBytes, mimeType },
-        OFFLINE_NO_VERIFY_SETTINGS,
-      );
+      const existing = await backend.peekStore(inputBytes, mimeType);
       const title =
         sign.output !== undefined
           ? basename(sign.output)
@@ -112,64 +112,22 @@ export function createImageSigner(options: CreateImageSignerOptions): ImageSigne
             : mimeType === "image/png"
               ? "image.png"
               : "image.jpg";
-      const builder = Builder.withJson(
-        {
-          // The backend allows exactly one claim_generator_info entry (ADR-0019);
-          // model info lives in the created action and the org.gsengai.generator assertion.
-          claim_generator_info: [{ name: GENERATOR_NAME, version: VERSION }],
-          title,
-        },
-        OFFLINE_NO_VERIFY_SETTINGS,
-      );
-      const when = new Date().toISOString();
-      if (existing) {
-        // Edit path: the builder generates the parent ingredient and its
-        // c2pa.opened action itself — adding our own opened action would drop
-        // the ingredient reference and fail validation (ADR-0019).
-        builder.setIntent("edit");
-      } else {
-        builder.setIntent({ create: TRAINED_ALGORITHMIC_MEDIA });
-        builder.addAction(
-          JSON.stringify({
-            action: "c2pa.created",
-            digitalSourceType: TRAINED_ALGORITHMIC_MEDIA,
-            softwareAgent: { name: sign.model },
-            when,
-          }),
-        );
-      }
-      // Generator/model info + timestamp on both paths (PRD B2, ADR-0019).
-      builder.addAssertion(GENERATOR_ASSERTION_LABEL, {
-        generator: { name: GENERATOR_NAME, version: VERSION },
-        model: sign.model,
-        when,
-      });
 
       // Signing failures always throw (ADR-0017) — nothing to fail open with.
-      let signedBytes: Buffer;
-      let output: string | Buffer;
-      if (sign.output !== undefined) {
-        builder.sign(signer, { buffer: inputBytes, mimeType }, { path: sign.output });
-        signedBytes = await readFile(sign.output);
-        output = sign.output;
-      } else {
-        const dest: { buffer: Buffer | null } = { buffer: null };
-        builder.sign(signer, { buffer: inputBytes, mimeType }, dest);
-        if (!dest.buffer) {
-          throw new Error("gsengai: signing produced no output buffer");
-        }
-        signedBytes = dest.buffer;
-        output = signedBytes;
-      }
-
-      const readBack = await Reader.fromAsset(
-        { buffer: signedBytes, mimeType },
-        OFFLINE_NO_VERIFY_SETTINGS,
-      );
-      const manifestLabel = readBack?.activeLabel();
-      if (!manifestLabel) {
-        throw new Error("gsengai: signed output has no readable active manifest");
-      }
+      const { signedBytes, manifestLabel } = await backend.sign({
+        inputBytes,
+        mimeType,
+        outputPath: sign.output,
+        title,
+        model: sign.model,
+        when: new Date().toISOString(),
+        hasParent: existing?.active_manifest != null,
+        certBytes,
+        keyBytes,
+        certPath,
+        keyPath,
+      });
+      const output: string | Buffer = sign.output ?? signedBytes;
 
       // Evidence-store failures follow failMode (ADR-0017); output_hash is the
       // sha256 of the signed output bytes, hashed centrally in core (ADR-0018).
