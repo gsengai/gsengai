@@ -2,6 +2,15 @@
 
 All notable changes to this project are documented here. The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project aims to follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.1] — 2026-07-12
+
+Docs-only release.
+
+### Added
+
+- Per-package READMEs, so the npm package pages document install, usage, and each package's guarantees (previously the pages showed no README).
+- README badges: CI, npm version, license, Node.
+
 ## [0.2.0] — 2026-07-12
 
 ### Added

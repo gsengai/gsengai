@@ -1,6 +1,6 @@
 {
   "name": "@gsengai/demo",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "private": true,
   "description": "Interactive local-run demo of the gsengai evidence layer: hash-only text evidence records and dev-cert C2PA image signing. Supports compliance with EU AI Act Article 50 and California SB 942. Not legal advice.",
   "license": "Apache-2.0",
