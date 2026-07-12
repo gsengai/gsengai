@@ -1,5 +1,10 @@
 # gsengai
 
+[![CI](https://github.com/gsengai/gsengai/actions/workflows/ci.yml/badge.svg)](https://github.com/gsengai/gsengai/actions/workflows/ci.yml)
+[![npm version](https://img.shields.io/npm/v/%40gsengai%2Fcore?label=npm)](https://www.npmjs.com/package/@gsengai/core)
+[![license](https://img.shields.io/github/license/gsengai/gsengai)](./LICENSE)
+[![node](https://img.shields.io/node/v/%40gsengai%2Fcore)](https://nodejs.org)
+
 **Open-source transparency and provenance tooling for AI product teams.**
 
 Supports compliance with **EU AI Act Article 50** (applies 2 August 2026) and **California SB 942** — a technical layer you add in an afternoon:
