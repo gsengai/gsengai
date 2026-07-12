@@ -2,6 +2,8 @@
 
 This walkthrough supports compliance with EU AI Act Article 50 and California SB 942 by logging and fingerprinting model text outputs — hashes and metadata only. The default path needs **no API key and makes no network calls** (after install).
 
+It runs from a clone of this repository, exercising the bundled examples and demo. To add gsengai to **your own app** instead, install the published packages from npm (`pnpm add @gsengai/core` plus the wrappers you need — see the [README](./README.md#install)) and jump to [Wire it into your own app](#wire-it-into-your-own-app).
+
 ## Prerequisites
 
 1. Node.js ≥ 22 — check with `node --version`
@@ -9,25 +11,32 @@ This walkthrough supports compliance with EU AI Act Article 50 and California SB
 
 ## Keyless path (default)
 
-3. Install dependencies (the only step that touches the network):
+3. Clone the repository:
+
+   ```sh
+   git clone https://github.com/gsengai/gsengai.git
+   cd gsengai
+   ```
+
+4. Install dependencies (the only other step that touches the network):
 
    ```sh
    pnpm install
    ```
 
-4. Run the test suite — every capture path is covered, and no test touches the network:
+5. Run the test suite — every capture path is covered, and no test touches the network:
 
    ```sh
    pnpm test
    ```
 
-5. Build the packages:
+6. Build the packages:
 
    ```sh
    pnpm build
    ```
 
-6. Run the quickstart:
+7. Run the quickstart:
 
    ```sh
    pnpm quickstart
@@ -39,14 +48,14 @@ This walkthrough supports compliance with EU AI Act Article 50 and California SB
    - verifies the hash chain,
    - exports the log as JSONL to `examples/.out/evidence-export.jsonl` — the audit artifact.
 
-7. Read the printed record: it contains hashes and metadata only. The raw model output never touches disk — that is the privacy default, enforced by a canary test.
+8. Read the printed record: it contains hashes and metadata only. The raw model output never touches disk — that is the privacy default, enforced by a canary test.
 
 ## With a real API key (optional)
 
 ```sh
 export OPENAI_API_KEY=sk-...
 pnpm quickstart              # same flow, live API (model: gpt-4o-mini)
-A50C_QUICKSTART_MODEL=gpt-4.1 pnpm quickstart   # pick another model
+GSENGAI_QUICKSTART_MODEL=gpt-4.1 pnpm quickstart   # pick another model
 ```
 
 ## Sign an AI-generated image (keyless, dev certificates)

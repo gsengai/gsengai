@@ -266,7 +266,7 @@ describe("signImage — failure semantics (ADR-0017)", () => {
 
 describe("privacy canary — media (PRD C4). Never delete, skip, or weaken this test.", () => {
   it("a sentinel byte string embedded in the source PNG appears in no DB/WAL/SHM file", async () => {
-    const sentinel = "A50C_CANARY_SENTINEL_do-not-persist-raw-media-bytes";
+    const sentinel = "GSENGAI_CANARY_SENTINEL_do-not-persist-raw-media-bytes";
     const png = makePng(sentinel);
     // positive control: the sentinel really is in the source image bytes
     expect(png.includes(Buffer.from(sentinel))).toBe(true);

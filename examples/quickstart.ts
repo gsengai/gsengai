@@ -5,7 +5,7 @@
  *
  * Keyless by default: a built-in mock OpenAI-shaped client is used and nothing
  * touches the network. Set OPENAI_API_KEY to run the same flow against the real
- * OpenAI API (optional; override the model with A50C_QUICKSTART_MODEL).
+ * OpenAI API (optional; override the model with GSENGAI_QUICKSTART_MODEL).
  */
 import { mkdirSync } from "node:fs";
 import { dirname, join } from "node:path";
@@ -73,7 +73,7 @@ async function makeClient(): Promise<{ client: ChatClient; mode: string; model: 
       return {
         client: new OpenAI({ apiKey }) as unknown as ChatClient,
         mode: "live OpenAI API (OPENAI_API_KEY detected)",
-        model: process.env.A50C_QUICKSTART_MODEL ?? "gpt-4o-mini",
+        model: process.env.GSENGAI_QUICKSTART_MODEL ?? "gpt-4o-mini",
       };
     } catch (err) {
       console.warn(

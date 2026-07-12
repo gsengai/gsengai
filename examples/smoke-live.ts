@@ -66,7 +66,7 @@ async function main(): Promise<void> {
   if (openaiKey) {
     const { default: OpenAI } = await import("openai");
     const { withEvidence } = await import("@gsengai/openai");
-    const model = process.env.A50C_SMOKE_OPENAI_MODEL ?? "gpt-4o-mini";
+    const model = process.env.GSENGAI_SMOKE_OPENAI_MODEL ?? "gpt-4o-mini";
 
     await run("openai chat non-stream", dir, async (store) => {
       const client = withEvidence(new OpenAI(), { store, systemId: "smoke-live" });
@@ -111,7 +111,7 @@ async function main(): Promise<void> {
   if (anthropicKey) {
     const { default: Anthropic } = await import("@anthropic-ai/sdk");
     const { withEvidence } = await import("@gsengai/anthropic");
-    const model = process.env.A50C_SMOKE_ANTHROPIC_MODEL ?? "claude-haiku-4-5-20251001";
+    const model = process.env.GSENGAI_SMOKE_ANTHROPIC_MODEL ?? "claude-haiku-4-5-20251001";
 
     await run("anthropic messages.create({stream:true})", dir, async (store) => {
       const client = withEvidence(new Anthropic(), { store, systemId: "smoke-live" });
@@ -151,7 +151,7 @@ async function main(): Promise<void> {
     const { createOpenAI } = await import("@ai-sdk/openai");
     const { evidenceMiddleware } = await import("@gsengai/ai-sdk");
     const provider = createOpenAI({ apiKey: openaiKey });
-    const model = process.env.A50C_SMOKE_OPENAI_MODEL ?? "gpt-4o-mini";
+    const model = process.env.GSENGAI_SMOKE_OPENAI_MODEL ?? "gpt-4o-mini";
 
     await run("ai-sdk generateText", dir, async (store) => {
       const wrapped = wrapLanguageModel({
