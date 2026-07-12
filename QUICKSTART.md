@@ -52,7 +52,14 @@ A50C_QUICKSTART_MODEL=gpt-4.1 pnpm quickstart   # pick another model
 ## Sign an AI-generated image (keyless, dev certificates)
 
 `@gsengai/c2pa` signs PNG/JPEG images with a C2PA manifest declaring AI
-generation. No API key needed — this works on any local image:
+generation. No API key needed — this works on any local image.
+
+> **Platform note:** on macOS (Apple Silicon) signing works with no extra
+> setup. On Linux, Windows, and Intel macs, install
+> [c2patool](https://github.com/contentauth/c2pa-rs/tree/main/cli) once
+> ([prebuilt binaries](https://github.com/contentauth/c2pa-rs/releases) or
+> `cargo install c2patool`) and have it on `PATH` — the fallback backend is
+> auto-detected. Details in [docs/production.md](./docs/production.md).
 
 ```ts
 import { createEvidenceStore } from "@gsengai/core";
@@ -175,7 +182,9 @@ Open http://localhost:3000 and try both flows:
   manifest summary, and links to
   [contentcredentials.org/verify](https://contentcredentials.org/verify). The
   verifier will flag the issuer as untrusted — expected for dev certificates;
-  the page says so before you click through.
+  the page says so before you click through. On platforms other than macOS
+  (Apple Silicon) the image flow needs `c2patool` installed — see the platform
+  note above; the text flow runs everywhere with no extra setup.
 
 Nothing you enter is persisted: the demo store is in-memory, hash-only, and
 wiped after every request. The demo also renders a live

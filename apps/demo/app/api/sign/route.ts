@@ -64,7 +64,28 @@ export async function POST(request: Request): Promise<Response> {
     return errorResponse("Only PNG and JPEG images are supported (MVP).", 415);
   }
 
-  const result = await withEphemeralStore<SignImageResponse | Response>(async (store) => {
+  let result: SignImageResponse | Response;
+  try {
+    result = await signWithEphemeralStore(inputBytes, mimeType, file.name);
+  } catch (err) {
+    // Surface actionable gsengai errors (e.g. the c2patool install guidance on
+    // platforms where the native signing binary cannot load); never echo input.
+    const message =
+      err instanceof Error && err.message.startsWith("gsengai:")
+        ? err.message
+        : "Signing failed unexpectedly.";
+    return errorResponse(message, 500);
+  }
+
+  return result instanceof Response ? result : Response.json(result);
+}
+
+function signWithEphemeralStore(
+  inputBytes: Uint8Array,
+  mimeType: string,
+  uploadName: string | undefined,
+): Promise<SignImageResponse | Response> {
+  return withEphemeralStore<SignImageResponse | Response>(async (store) => {
     const signer = createImageSigner({ store, systemId: `${BRAND}-demo/image-flow` });
     const signed = await signer.signImage({
       input: inputBytes,
@@ -84,9 +105,7 @@ export async function POST(request: Request): Promise<Response> {
       manifest,
       signedImage: signed.output.toString("base64"),
       mimeType,
-      filename: downloadName(file.name, mimeType),
+      filename: downloadName(uploadName, mimeType),
     };
   });
-
-  return result instanceof Response ? result : Response.json(result);
 }
