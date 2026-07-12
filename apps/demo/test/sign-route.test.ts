@@ -3,21 +3,14 @@
 // (dev certs), the manifest declares AI generation, pre-existing manifests are
 // chained as ingredients, and non-images / oversized uploads are refused.
 
-import { Reader } from "@contentauth/c2pa-node";
 import { TRAINED_ALGORITHMIC_MEDIA } from "@gsengai/c2pa";
 import { describe, expect, it } from "vitest";
+// Backend-routed asset reading so this suite runs wherever @gsengai/c2pa does —
+// native c2pa-node or the c2patool fallback (issue #1).
+import { resolveBackend } from "../../../packages/c2pa/src/backend";
+import type { ImageMime } from "../../../packages/c2pa/src/mime";
 import { makeJpeg, makePng } from "../../../packages/c2pa/test/fixtures";
 import { MAX_UPLOAD_BYTES, POST, type SignImageResponse } from "../app/api/sign/route";
-
-const OFFLINE_READ = {
-  verify: {
-    verify_after_reading: false,
-    verify_trust: false,
-    ocsp_fetch: false,
-    remote_manifest_fetch: false,
-  },
-  trust: { verify_trust_list: false },
-};
 
 function post(file: File | undefined): Promise<Response> {
   const form = new FormData();
@@ -40,8 +33,10 @@ interface ActionShape {
 
 async function createdAction(signedBase64: string, mimeType: string) {
   const buffer = Buffer.from(signedBase64, "base64");
-  const reader = await Reader.fromAsset({ buffer, mimeType }, OFFLINE_READ);
-  const assertions = reader?.getActive()?.assertions ?? [];
+  const backend = await resolveBackend();
+  const store = await backend.peekStore(buffer, mimeType as ImageMime);
+  const active = store?.active_manifest ? store.manifests?.[store.active_manifest] : null;
+  const assertions = active?.assertions ?? [];
   return assertions
     .filter((a) => a.label.startsWith("c2pa.actions"))
     .flatMap((a) => (a.data as { actions: ActionShape[] }).actions)
