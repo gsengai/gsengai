@@ -34,4 +34,4 @@ Publishing to npm is currently **manual** — done from a maintainer's machine w
 
 ## Restoring automated publishing (#2)
 
-Trusted publishers are already configured for all six packages. When pnpm supports OIDC for recursive publish (or the CI npm `sigstore` packaging is fixed), restore the OIDC publish job from git history, re-enable `id-token: write`, and tighten each package to "require 2FA and disallow tokens." The unused `NPM_TOKEN` secret can be deleted.
+Trusted publishers are already configured for all six packages. When pnpm supports OIDC for recursive publish (or the CI npm `sigstore` packaging is fixed), restore the OIDC publish job from git history, re-enable `id-token: write`, and tighten each package to "require 2FA and disallow tokens." (The repo carries no npm secret — the old `NPM_TOKEN` was deleted once the workflows stopped referencing it.)
