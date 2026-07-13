@@ -45,6 +45,8 @@ const html = interactionNoticeHTML({ locale: "fr" });
 
 This package supports compliance with EU AI Act Article 50 and California SB 942. It does not make you compliant — compliance depends on your system, your deployment context, and your processes. It is not legal advice.
 
+Which Article 50 duties apply to you depends on whether you act as *provider* or *deployer* of an AI system — a determination to make with qualified counsel, not with this package. The duty map in [docs/DISCLOSURE.md](https://github.com/gsengai/gsengai/blob/main/docs/DISCLOSURE.md) shows which component supports which duty.
+
 ## License
 
 Apache-2.0

@@ -13,13 +13,16 @@ legally sufficient in your deployment context.
 
 | Component | HTML equivalent | Article 50 duty it supports |
 | --- | --- | --- |
-| `<AIInteractionNotice/>` | `interactionNoticeHTML()` | Art. 50(1): informing natural persons that they are interacting with an AI system (unless obvious from context). |
-| `<AIGeneratedBadge/>` | `aiGeneratedBadgeHTML()` | Art. 50(4) surfacing of content provenance: a visible label that content is AI-generated, complementing the machine-readable marking (Art. 50(2)) done by the text/media pipelines. |
-| `<SyntheticContentLabel/>` | `syntheticContentLabelHTML()` | Art. 50(4): disclosing deepfakes (AI-generated or manipulated image/audio/video resembling real persons, places, entities or events) and AI-generated text published to inform the public on matters of public interest. |
+| `<AIInteractionNotice/>` | `interactionNoticeHTML()` | Art. 50(1): informing natural persons that they are interacting with an AI system (unless obvious from context). A duty the Act places on *providers*. |
+| `<AIGeneratedBadge/>` | `aiGeneratedBadgeHTML()` | Art. 50(4) surfacing of content provenance: a visible label that content is AI-generated, complementing the machine-readable marking (Art. 50(2), a *provider* duty) done by the text/media pipelines. |
+| `<SyntheticContentLabel/>` | `syntheticContentLabelHTML()` | Art. 50(4): disclosing deepfakes (AI-generated or manipulated image/audio/video resembling real persons, places, entities or events) and AI-generated text published to inform the public on matters of public interest. A duty the Act places on *deployers*. |
 
-Article 50 exemptions and limitations (evidently artistic/creative/satirical works, content
-under human editorial control, uses authorised by law) are the integrator's call — the
-components render whatever disclosure you decide is required.
+Whether you act as *provider* or *deployer* for a given system — and therefore which of these
+duties are yours — is a legal determination the components cannot make for you; settle it with
+qualified counsel. Likewise, Article 50 exemptions and limitations (evidently
+artistic/creative/satirical works, content under human editorial control, uses authorised by
+law) are the integrator's call — the components render whatever disclosure you decide is
+required.
 
 ## Usage
 

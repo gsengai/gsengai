@@ -24,6 +24,25 @@ TypeScript, with drop-in wrappers for the OpenAI, Anthropic, and Vercel AI SDKs.
 > - It does not detect third-party AI content.
 > - It is not legal advice. Consult qualified counsel about your obligations.
 
+## Who this is for
+
+**Engineering teams shipping generative-AI features** are the integrators: the wrappers, the image signer, and the UI kit are added by developers, whatever your organization's legal classification turns out to be.
+
+The obligations these features support are role-specific, and each law uses its own vocabulary: the EU AI Act places Article 50 duties on *providers* and *deployers* of AI systems; California SB 942 addresses *covered providers* (roughly: a publicly accessible generative-AI system with more than 1,000,000 monthly visitors or users). The definitions differ — an organization can hold one of these roles, several, or none. **gsengai does not determine your role or which obligations apply to you.** That is a legal determination that depends on your system, your deployment context, and how each law defines its terms — make it with qualified counsel, not with this README.
+
+| Obligation the feature supports | Whom the law addresses | Feature |
+| --- | --- | --- |
+| Informing people they are interacting with an AI system — EU AI Act Art. 50(1) | Providers | `<AIInteractionNotice/>` (`@gsengai/disclosure`) |
+| Machine-readable marking of synthetic content — EU AI Act Art. 50(2): audio, image, video, and text | Providers | C2PA manifests for images (`@gsengai/c2pa`); text fingerprinting + evidence log as the fingerprinting/detection layer (`@gsengai/core`) |
+| Visible disclosure of deepfakes and of public-interest AI text — EU AI Act Art. 50(4) | Deployers | `<SyntheticContentLabel/>`, `<AIGeneratedBadge/>` (`@gsengai/disclosure`) |
+| Latent (machine-readable) disclosure in AI-generated content — California SB 942: image, video, and audio only | Covered providers | C2PA manifests — PNG/JPEG today; gsengai does not yet sign video or audio |
+| Offering users a visible ("manifest") disclosure — SB 942 | Covered providers | `@gsengai/disclosure` labels |
+| Providing a free public AI-content detection tool — SB 942 | Covered providers | Hash-based detection lookups to build one on (`@gsengai/core`); a hosted detection endpoint is on the [roadmap](./ROADMAP.md) |
+
+Two scope notes worth knowing: Article 50(2) marking covers text, while SB 942's disclosure duties cover image, video, and audio only; and both laws apply from **2 August 2026** (SB 942's operative date was aligned to the EU AI Act's by its 2025 amendments, AB 853).
+
+**Compliance officers, auditors, and counsel** are the second audience: the CSV export and the Markdown audit report (chain-integrity verdict stated up front, limits block included) are written to be handed to you, not just kept by the engineers — see [audit artifacts](#what-is-implemented-today).
+
 ## Install
 
 ```sh
