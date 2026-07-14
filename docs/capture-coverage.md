@@ -50,6 +50,27 @@ increments. Watch it via `getLostRecordCount()` from `@gsengai/core` (and
 `resetLostRecordCount()` for metrics scrapers). A non-zero counter means your
 evidence log has gaps for exactly that many generations.
 
+## Text lookups are exact-match — edited text will not match
+
+`findByText` / `findByOutputHash` answer "did we generate exactly this
+text?". The store keeps two SHA-256 fingerprints per output: the raw text
+and a normalized form (Unicode NFC, lowercased, whitespace collapsed —
+spec §5). Lookups therefore tolerate case, whitespace, and
+Unicode-encoding differences — and nothing else. Change one word, add a
+comma, or paraphrase a sentence, and the lookup returns no match.
+
+Two consequences worth keeping apart:
+
+- **The audit trail is unaffected.** An evidence record documents what was
+  generated at generation time; editing a downstream copy of the text does
+  not touch the store, and `verifyChain()` still passes.
+- **Reverse tracing is lost.** Given an edited copy found in the wild, the
+  store cannot connect it back to the original record. This is a direct
+  consequence of the privacy design: raw text never persists, so there is
+  nothing to fuzzy-search at query time. Similarity matching over
+  write-time fingerprints (shingle / MinHash) is on the
+  [roadmap](../ROADMAP.md).
+
 ## Media signing (`@gsengai/c2pa`)
 
 Every successful `signImage` writes one evidence record for the **signed

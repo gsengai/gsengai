@@ -76,7 +76,7 @@ The text evidence pipeline, the evidence store, C2PA image signing, the disclosu
 
 Wrappers never mutate or block model responses: they hash the generated text in memory, append an evidence record, and return the SDK's response unmodified. Failure semantics default to fail-open with a loud warning and a lost-record counter; `failMode: 'strict'` is opt-in.
 
-**Know what is and is not captured:** [docs/capture-coverage.md](./docs/capture-coverage.md) documents the capture gaps and semantics (`n > 1`, `Stream.tee()`, `.withResponse()`, `MessageStream` observation, the lost-record counter) — read it before relying on the evidence log.
+**Know what is and is not captured:** [docs/capture-coverage.md](./docs/capture-coverage.md) documents the capture gaps and semantics (`n > 1`, `Stream.tee()`, `.withResponse()`, `MessageStream` observation, the lost-record counter, exact-match lookup semantics — edited text will not match, though the generation-time audit trail is unaffected) — read it before relying on the evidence log.
 
 **Audit artifacts:** `store.exportCsv(path, filter?)` and `store.buildAuditReport({ path, filter })` (or the `gsengai-audit` CLI) turn the evidence log into the documents a team hands its counsel or a supervisory authority: a CSV of all records and a Markdown audit report with an Integrity section (`verifyChain()` outcome — verified or BROKEN — always reported, never suppressed), summary breakdowns, the full record listing, and the limits block above. See [QUICKSTART.md](./QUICKSTART.md#export-audit-artifacts-csv--audit-report-under-5-minutes).
 
