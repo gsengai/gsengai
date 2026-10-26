@@ -59,7 +59,7 @@ Requires Node >= 22. The `@gsengai/*` packages are published on npm. For product
 
 See [QUICKSTART.md](./QUICKSTART.md) — from clone to your first persisted, hash-only, tamper-evident evidence record in under 15 minutes, with or without a model API key. ([Tamper-evident](./docs/production.md) means detectable, not prevented.)
 
-**Interactive demo (local, keyless):** `pnpm demo` starts a web demo of both pipelines — paste text to get a hash-only evidence record (hashed in your browser; the text never leaves the page), or upload a PNG/JPEG to get it C2PA-signed with the bundled dev certificates, plus a rendered audit-report sample. See the [demo section in QUICKSTART.md](./QUICKSTART.md#run-the-interactive-demo-under-5-minutes-keyless). The demo is local-run until the public launch.
+**Interactive demo (local, keyless):** `pnpm demo` starts a web demo of both pipelines — paste text to get a hash-only evidence record (hashed in your browser; the text never leaves the page), or upload a PNG/JPEG to get it C2PA-signed with the bundled dev certificates, plus a rendered audit-report sample. See the [demo section in QUICKSTART.md](./QUICKSTART.md#run-the-interactive-demo-under-5-minutes-keyless). The demo runs locally; a hosted version is on the [roadmap](./ROADMAP.md).
 
 ## What is implemented today
 
@@ -94,7 +94,7 @@ There is also a quiet nod to [Sengai Gibon](https://en.wikipedia.org/wiki/Sengai
 
 ## Built with
 
-Fittingly for a project about AI transparency: this was built with [Claude Code](https://claude.com/claude-code), Anthropic's agentic coding tool. The bulk of the implementation was done with Claude Fable 5, and the release engineering with Claude Opus 4.8. Design decisions, review, and direction are the maintainer's.
+Fittingly for a project about AI transparency: this was built with [Claude Code](https://claude.com/claude-code), Anthropic's agentic coding tool. The bulk of the implementation was done with Claude Fable 5, the release engineering with Claude Opus 4.8, and the 0.3.0 security hardening and release with Claude Opus 5.5. Design decisions, review, and direction are the maintainer's.
 
 ## License
 

@@ -1,15 +1,15 @@
 # Deploying the demo (prepared, NOT executed)
 
-> **Do not deploy before the public launch.** A public deployment is a public
-> mention, so it waits for the maintainer's launch decision. (The name itself is
-> locked — ADR-0032.) This config is committed so launch is a one-command step.
+> **Prepared, not yet deployed.** What still blocks a hosted demo is image
+> signing on Vercel — see *Runtime notes* below. This config is committed so
+> deploying is a one-command step once that is solved.
 
 The demo supports compliance workflows only in the sense the rest of the repo
 does — see the §9 limits block in [README.md](../../README.md). It ships no
 secrets and needs no environment variables: the demo is keyless by design
 (test-enforced).
 
-## One-command deploy (at launch)
+## One-command deploy
 
 From the repo root, with the [Vercel CLI](https://vercel.com/docs/cli) logged in:
 
