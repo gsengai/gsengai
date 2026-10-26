@@ -85,8 +85,8 @@ importers:
         version: 19.2.7(react@19.2.7)
     devDependencies:
       '@contentauth/c2pa-node':
-        specifier: 0.6.0
-        version: 0.6.0
+        specifier: 0.9.10
+        version: 0.9.10
       '@types/node':
         specifier: ^22.10.0
         version: 22.20.0
@@ -135,15 +135,15 @@ importers:
   packages/c2pa:
     dependencies:
       '@contentauth/c2pa-node':
-        specifier: 0.6.0
-        version: 0.6.0
+        specifier: 0.9.10
+        version: 0.9.10
       '@gsengai/core':
         specifier: workspace:^
         version: link:../core
     devDependencies:
       '@contentauth/c2pa-types':
-        specifier: ^0.7.0
-        version: 0.7.0
+        specifier: ^0.7.6
+        version: 0.7.6
       tsup:
         specifier: ^8.0.0
         version: 8.5.1(postcss@8.5.16)(tsx@4.23.0)(typescript@5.9.3)
@@ -295,12 +295,15 @@ packages:
     cpu: [x64]
     os: [win32]
 
-  '@contentauth/c2pa-node@0.6.0':
-    resolution: {integrity: sha512-cSLLrXfQ+VIZtMzYVeYQNr7D2AY2zUSQp8qIHH4iQ9R0ELq8+20CbS3WcfgHo1SlXxj1GFmeL6HA7FtFuF6nJA==}
+  '@contentauth/c2pa-node@0.9.10':
+    resolution: {integrity: sha512-QmG56oUv1B7Wc+gmbU5VgJ848SNS3p+tszood+F9C0qYi0q3qabr4rzLyOHiZVP8NHefOTvKGvPTclLcS0dkTQ==}
     engines: {node: '>=22'}
 
-  '@contentauth/c2pa-types@0.7.0':
-    resolution: {integrity: sha512-nbrV6dGweGw2sPhLLFmI3i9xLFYmsfgpqIvNxXGrdhxtryQfjdETHIijRSDdi1n84YDNrd36JFt7CPzsjIPCQw==}
+  '@contentauth/c2pa-types@0.7.6':
+    resolution: {integrity: sha512-C7khzKdmdXilaEHEtkjCMzRzu1js+/Uk+cTdcJtaYAY7+Zce5gfYn3S/hgjg0da4SsvH4kOMVqWwH4ZfnS1kvw==}
+
+  '@contentauth/c2pa-utilities@0.3.2':
+    resolution: {integrity: sha512-ZqFAUdSCID18cpfRWPwRRPG/p0cjSnt06IOmkUuQCGtStGm672ZucNk8xnrpV8dQuZwVW0DZWixgh5HMVQ96ug==}
 
   '@emnapi/runtime@1.11.2':
     resolution: {integrity: sha512-kyOl3X0DuTiT1h2ft8r2fYO8JYtU9a9Xis/zBSiGArNaagCOWx90N1k2wxp18czFDH+OgcWGb5ZP/XMt3dcyPA==}
@@ -1708,6 +1711,10 @@ packages:
   ts-algebra@2.0.0:
     resolution: {integrity: sha512-FPAhNPFMrkwz76P7cdjdmiShwMynZYN6SgOujD1urY4oNm80Ou9oMdmbR45LotcKOXoy7wSmHkRFE6Mxbrhefw==}
 
+  ts-deepmerge@8.0.0:
+    resolution: {integrity: sha512-133O+10nJmVI8w5xeVZPEv5PIrv7iaUae07wv1aH8XJH95Ur6YIhWAPhPyP1YPlbPS9fCVcNIZTu7m8urRVF0A==}
+    engines: {node: '>=14.13.1'}
+
   ts-interface-checker@0.1.13:
     resolution: {integrity: sha512-Y/arvbn+rrz3JCKl9C4kVNfTfSm2/mEp5FSz5EsZSANGPSlQrpRI5M4PKF+mJnE52jOO90PnPSc3Ur3bTQw0gA==}
 
@@ -1927,8 +1934,10 @@ snapshots:
   '@biomejs/cli-win32-x64@2.5.2':
     optional: true
 
-  '@contentauth/c2pa-node@0.6.0':
+  '@contentauth/c2pa-node@0.9.10':
     dependencies:
+      '@contentauth/c2pa-types': 0.7.6
+      '@contentauth/c2pa-utilities': 0.3.2
       cargo-cp-artifact: 0.1.9
       cli-progress: 3.12.0
       debug: 4.4.3
@@ -1941,7 +1950,12 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  '@contentauth/c2pa-types@0.7.0': {}
+  '@contentauth/c2pa-types@0.7.6': {}
+
+  '@contentauth/c2pa-utilities@0.3.2':
+    dependencies:
+      '@contentauth/c2pa-types': 0.7.6
+      ts-deepmerge: 8.0.0
 
   '@emnapi/runtime@1.11.2':
     dependencies:
@@ -3068,6 +3082,8 @@ snapshots:
   tree-kill@1.2.2: {}
 
   ts-algebra@2.0.0: {}
+
+  ts-deepmerge@8.0.0: {}
 
   ts-interface-checker@0.1.13: {}
 

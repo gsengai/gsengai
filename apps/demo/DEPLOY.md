@@ -1,8 +1,8 @@
 # Deploying the demo (prepared, NOT executed)
 
-> **Prepared, not yet deployed.** What still blocks a hosted demo is image
-> signing on Vercel — see *Runtime notes* below. This config is committed so
-> deploying is a one-command step once that is solved.
+> **Prepared, not yet deployed.** Image signing on Vercel should now work
+> natively but has not been verified on a live deployment — see *Runtime
+> notes* below. This config is committed so deploying is a one-command step.
 
 The demo supports compliance workflows only in the sense the rest of the repo
 does — see the §9 limits block in [README.md](../../README.md). It ships no
@@ -34,11 +34,12 @@ name in the demo.
 - **Native modules:** `better-sqlite3` and `@contentauth/c2pa-node` are native
   binaries, kept external to the bundle (`next.config.ts`). `better-sqlite3` is
   built for the deployment target by Vercel's build step.
-- **Image signing on Vercel is not set up yet.** The `@contentauth/c2pa-node`
-  binary only loads on macOS arm64 (ADR-0035); Vercel functions run Linux, so
-  the image route needs the `c2patool` fallback binary available to the
-  function (on `PATH` or via `GSENGAI_C2PATOOL_PATH`). Until that is bundled,
-  the image route returns the c2patool install error while the text flow works.
+- **Image signing on Vercel (unverified).** `@contentauth/c2pa-node` downloads
+  its Linux x64 binary during the install step — this repository allows its
+  install script (`onlyBuiltDependencies`) — so the image route should sign
+  natively on Vercel's Linux functions (ADR-0042). If the binary doesn't load
+  there, the route returns the install guidance (allow the script, or provide
+  `c2patool` via `GSENGAI_C2PATOOL_PATH`) while the text flow keeps working.
   Validate both API routes on the preview deployment before promoting.
 - **Statelessness:** the evidence store is created per request, in memory, and
   wiped — there is nothing to migrate or persist, so serverless function

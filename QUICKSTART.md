@@ -63,12 +63,15 @@ GSENGAI_QUICKSTART_MODEL=gpt-4.1 pnpm quickstart   # pick another model
 `@gsengai/c2pa` signs PNG/JPEG images with a C2PA manifest declaring AI
 generation. No API key needed — this works on any local image.
 
-> **Platform note:** on macOS (Apple Silicon) signing works with no extra
-> setup. On Linux, Windows, and Intel macs, install
-> [c2patool](https://github.com/contentauth/c2pa-rs/tree/main/cli) once
+> **Platform note:** signing uses a native binary that `@contentauth/c2pa-node`
+> downloads for your platform (macOS, Linux, Windows) when it installs. In this
+> repository that happens on `pnpm install`. In your own app, if you use pnpm
+> 10+ or Bun, allow its install script first (`pnpm approve-builds`; Bun:
+> `trustedDependencies`). Where the native binary can't load, the
+> [c2patool](https://github.com/contentauth/c2pa-rs/tree/main/cli) fallback is
+> used automatically if it is on `PATH`
 > ([prebuilt binaries](https://github.com/contentauth/c2pa-rs/releases) or
-> `cargo install c2patool`) and have it on `PATH` — the fallback backend is
-> auto-detected. Details in [docs/production.md](./docs/production.md).
+> `cargo install c2patool`). Details in [docs/production.md](./docs/production.md).
 
 ```ts
 import { createEvidenceStore } from "@gsengai/core";
@@ -198,9 +201,9 @@ Open http://localhost:3000 and try both flows:
   manifest summary, and links to
   [contentcredentials.org/verify](https://contentcredentials.org/verify). The
   verifier will flag the issuer as untrusted — expected for dev certificates;
-  the page says so before you click through. On platforms other than macOS
-  (Apple Silicon) the image flow needs `c2patool` installed — see the platform
-  note above; the text flow runs everywhere with no extra setup.
+  the page says so before you click through. If the native signing binary
+  can't load on your machine, the image flow needs `c2patool` — see the
+  platform note above; the text flow runs everywhere with no extra setup.
 
 Nothing you enter is persisted: the demo store is in-memory, hash-only, and
 wiped after every request. The demo also renders a live
@@ -208,7 +211,8 @@ wiped after every request. The demo also renders a live
 Markdown audit report rendered to HTML.
 
 The demo runs locally for now. A hosted deployment is prepared (see
-`apps/demo/DEPLOY.md`), but image signing is not yet set up for it.
+`apps/demo/DEPLOY.md`); image signing there is not yet verified on a live
+deployment.
 
 ## Wire it into your own app
 

@@ -4,7 +4,7 @@ Thanks for your interest. This project supports compliance with EU AI Act Articl
 
 ## Getting set up
 
-Requirements: Node >= 22, pnpm, `git`, `bash`, and `openssl` (some C2PA tests generate throwaway signing certificates). On Linux, Windows, and Intel macs the C2PA tests also need [c2patool](https://github.com/contentauth/c2pa-rs/tree/main/cli) on `PATH`; on Apple Silicon the native backend is used. See the platform note in [docs/production.md](./docs/production.md).
+Requirements: Node >= 22, pnpm, `git`, `bash`, and `openssl` (some C2PA tests generate throwaway signing certificates). `pnpm install` downloads the native C2PA binary for your platform (this repository allows `@contentauth/c2pa-node`'s install script). To also run the C2PA tests on the c2patool fallback, as CI does on Ubuntu, install [c2patool](https://github.com/contentauth/c2pa-rs/tree/main/cli) and run `GSENGAI_C2PA_BACKEND=c2patool pnpm vitest run packages/c2pa apps/demo`. See the platform note in [docs/production.md](./docs/production.md).
 
 ```sh
 pnpm install

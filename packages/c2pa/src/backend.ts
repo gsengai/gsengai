@@ -1,11 +1,14 @@
 // SPDX-License-Identifier: Apache-2.0
 /**
- * Signing/reading backend abstraction (issue #1). The upstream
- * @contentauth/c2pa-node@0.6.0 tarball ships a macOS-arm64 native binary and
- * its postinstall downloader 404s on every platform, so the native module only
- * loads on Apple Silicon. Everywhere else we shell out to c2patool
- * (contentauth's standalone CLI, prebuilt for linux/macOS/windows), which is
- * built on the same c2pa-rs and produces equivalent manifests.
+ * Signing/reading backend abstraction (issue #1, ADR-0035, ADR-0042). The
+ * native @contentauth/c2pa-node module is preferred: since 0.9 its postinstall
+ * downloads a prebuilt binary for macOS (arm64, x64), Linux (arm64, x64 glibc),
+ * and Windows (x64). It can still fail to load — the install script was
+ * blocked (pnpm 10+ and Bun skip dependency scripts unless allowed; the
+ * tarball's bundled binary is linux-x64 only), the download failed, or the
+ * platform has no prebuilt (e.g. musl/Alpine) — and then we shell out to
+ * c2patool (contentauth's standalone CLI), built on the same c2pa-rs and
+ * producing equivalent manifests.
  *
  * Resolution order: try the native module first; on any load failure fall back
  * to c2patool. Overrides: GSENGAI_C2PA_BACKEND=native|c2patool forces one
@@ -37,6 +40,8 @@ export interface ManifestJson {
   claim_generator_info?: { name: string; version?: string }[];
   assertions?: { label: string; data: unknown }[];
   ingredients?: { relationship?: string; active_manifest?: string }[];
+  /** Claim thumbnail reference; both backends disable it, so signed output carries none (ADR-0042). */
+  thumbnail?: { format?: string; identifier?: string } | null;
   /** The signer as c2pa-rs reports it after verifying the claim signature (ADR-0040). */
   signature_info?: SignatureInfoJson | null;
 }
@@ -155,8 +160,11 @@ async function doResolve(forced: string, bin: string): Promise<C2paBackend> {
           `and the c2patool fallback ("${bin}") could not be run: ${message(err)}`;
     throw new Error(
       `gsengai: no C2PA signing backend available — ${detail}. ` +
-        "Install c2patool (https://github.com/contentauth/c2pa-rs/releases or `cargo install c2patool`) " +
-        "and put it on PATH, or point GSENGAI_C2PATOOL_PATH / the c2patoolPath option at the binary.",
+        "If you install with pnpm 10+ or Bun, allow @contentauth/c2pa-node's install script so it can " +
+        "download its native binary (pnpm: `pnpm approve-builds` or onlyBuiltDependencies; Bun: " +
+        "trustedDependencies), then reinstall. Otherwise install c2patool " +
+        "(https://github.com/contentauth/c2pa-rs/releases or `cargo install c2patool`) and put it on " +
+        "PATH, or point GSENGAI_C2PATOOL_PATH / the c2patoolPath option at the binary.",
     );
   }
   const { createC2patoolBackend } = await import("./c2patool.js");

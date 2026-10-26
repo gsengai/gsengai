@@ -53,7 +53,7 @@ pnpm add @gsengai/openai @gsengai/anthropic @gsengai/ai-sdk @gsengai/c2pa @gseng
 
 Requires Node >= 22. The `@gsengai/*` packages are published on npm. For production integration notes, see [docs/production.md](./docs/production.md).
 
-**Platform support:** text logging and fingerprinting, the evidence store, audit export, and the disclosure kit run on Node 22 or later. C2PA image signing works out of the box on macOS (Apple Silicon) via the native `@contentauth/c2pa-node` binary, and on Linux, Windows, and Intel macs through an automatic [c2patool](https://github.com/contentauth/c2pa-rs/tree/main/cli) fallback — install c2patool ([prebuilt binaries](https://github.com/contentauth/c2pa-rs/releases) or `cargo install c2patool`) and have it on `PATH`. Details in [docs/production.md](./docs/production.md).
+**Platform support:** text logging and fingerprinting, the evidence store, audit export, and the disclosure kit run on Node 22 or later. C2PA image signing uses the native `@contentauth/c2pa-node` binary, which downloads a prebuilt build for macOS (Apple Silicon and Intel), Linux (x64 and arm64, glibc), and Windows (x64) when it installs — with pnpm 10+ or Bun, allow its install script first (`pnpm approve-builds`; Bun: `trustedDependencies`). Where the native binary can't load, signing falls back automatically to [c2patool](https://github.com/contentauth/c2pa-rs/tree/main/cli) on `PATH` ([prebuilt binaries](https://github.com/contentauth/c2pa-rs/releases) or `cargo install c2patool`). Details in [docs/production.md](./docs/production.md).
 
 ## Quickstart
 

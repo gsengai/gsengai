@@ -31,11 +31,11 @@
     "build": "tsup"
   },
   "dependencies": {
-    "@gsengai/core": "workspace:^",
-    "@contentauth/c2pa-node": "0.6.0"
+    "@contentauth/c2pa-node": "0.9.10",
+    "@gsengai/core": "workspace:^"
   },
   "devDependencies": {
-    "@contentauth/c2pa-types": "^0.7.0",
+    "@contentauth/c2pa-types": "^0.7.6",
     "tsup": "^8.0.0",
     "typescript": "^5.6.0"
   },

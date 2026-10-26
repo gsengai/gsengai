@@ -15,12 +15,13 @@ permissions:
 
 jobs:
   verify:
-    # Ubuntu with the pinned c2patool fallback backend (issue #1); the macOS
-    # native path is covered by the CI matrix on every push.
+    # Ubuntu: the full suite on the native @contentauth/c2pa-node backend, then
+    # the C2PA tests forced onto the pinned c2patool fallback (ADR-0042). The
+    # macOS runner is covered by the CI matrix on every push.
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
-      - name: Install c2patool (pinned) — cross-platform C2PA signing backend
+      - name: Install c2patool (pinned) — the C2PA fallback backend
         run: |
           cd "$RUNNER_TEMP"
           curl -sSfL -o c2patool.tar.gz "https://github.com/contentauth/c2pa-rs/releases/download/c2patool-v0.27.22/c2patool-v0.27.22-x86_64-unknown-linux-gnu.tar.gz"
@@ -34,4 +35,11 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm test
+        env:
+          GSENGAI_EXPECT_BACKEND: native
+      - name: Test the c2patool fallback backend
+        run: pnpm vitest run packages/c2pa apps/demo
+        env:
+          GSENGAI_C2PA_BACKEND: c2patool
+          GSENGAI_EXPECT_BACKEND: c2patool
       - run: pnpm build
