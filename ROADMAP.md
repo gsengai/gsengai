@@ -4,7 +4,7 @@ This project provides the technical marking and logging layer that supports comp
 
 The roadmap below is a set of directions, not dated commitments. Priorities shift with what people actually need, so the best signal is an issue describing your use case.
 
-## Available today (v0.3)
+## Available today (v0.4)
 
 - Append-only, hash-chained evidence store (SQLite) with JSONL, CSV, and Markdown audit-report exports, and the `gsengai-audit` CLI.
 - Text output logging and fingerprinting through wrappers for the OpenAI (`openai` 6 and 7), Anthropic (`@anthropic-ai/sdk` 0.39 and later, including 1.x), and Vercel AI (`ai` 7) SDKs. The model response is returned unmodified; fail-open by default.

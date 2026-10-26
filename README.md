@@ -94,7 +94,7 @@ There is also a quiet nod to [Sengai Gibon](https://en.wikipedia.org/wiki/Sengai
 
 ## Built with
 
-Fittingly for a project about AI transparency: this was built with [Claude Code](https://claude.com/claude-code), Anthropic's agentic coding tool. The bulk of the implementation was done with Claude Fable 5, the release engineering with Claude Opus 4.8, and the 0.3.x security hardening, SDK compatibility work, and releases with Claude Opus 5.5. Design decisions, review, and direction are the maintainer's.
+Fittingly for a project about AI transparency: this was built with [Claude Code](https://claude.com/claude-code), Anthropic's agentic coding tool. The bulk of the implementation was done with Claude Fable 5, the release engineering with Claude Opus 4.8, and the 0.3–0.4 security hardening, SDK compatibility and native-signing work, and releases with Claude Opus 5.5. Design decisions, review, and direction are the maintainer's.
 
 ## License
 
