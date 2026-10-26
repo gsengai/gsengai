@@ -32,6 +32,14 @@ By default the wrappers fail open: if the evidence store is unavailable, your fe
 
 The evidence store is tamper-evident: `verifyChain()` detects casual and accidental edits or deletions, and there is no update or delete path in the API or in SQL. It is not forgery-proof against someone who has both write access to the database file and the (open-source) code, because the chain uses no secret key and is not anchored to any external service. Treat it as a detection mechanism, and pair it with access controls, backups, and — when available — external anchoring or trusted timestamping.
 
-## 7. Get legal sign-off
+## 7. Upgrade every writer and verifier of a store together
+
+Evidence records carry `signer_cert_sha256`, the fingerprint of the certificate that signed each image, and the record hash covers it. Versions of `@gsengai/core` before this field existed (0.2.x and earlier) don't know it: they hash those records without it and report a chain break at the first one. The data is intact, but the break is real to anyone reading that report, so plan upgrades around it:
+
+- **There is no rollback to 0.2.x once a store has records with `signer_cert_sha256`.** If you need to roll the application back, keep `@gsengai/core` and `@gsengai/c2pa` at the newer version.
+- **Upgrade every writer and verifier of a store at the same time**: signing services, SDK wrappers, `gsengai-audit` exports, and anything that calls `verifyChain()` or `buildAuditReport()`. A verifier left on 0.2.x reports a break as soon as an upgraded signer appends a record.
+- Opening an existing store with the newer version is safe: it adds one nullable column without modifying any existing row, and every existing record keeps verifying.
+
+## 8. Get legal sign-off
 
 Whether a given deployment meets Article 50 or SB 942 is a legal determination that depends on your system and processes. This project provides a technical layer and says so throughout. Have qualified counsel confirm your obligations and how you meet them.

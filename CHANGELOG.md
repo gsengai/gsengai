@@ -18,6 +18,8 @@ All notable changes to this project are documented here. The format is based on 
 
 - `SECURITY.md`: scanner alerts on the dev key are expected; any other private key in the repository or a published package is an incident to report privately.
 - `docs/CERTIFICATES.md`: never add the dev root to a C2PA trust list; how to find dev-signed outputs with `signer_cert_sha256` and `readManifest`.
+- `docs/production.md`: no rollback to 0.2.x once a store has records with `signer_cert_sha256`; upgrade every writer and verifier of a store together.
+- `RELEASING.md`: bump `@gsengai/core` and `@gsengai/c2pa` together (with the c2pa `VERSION` constant), check c2pa's packed range on core, and publish core first.
 
 ## [0.2.1] — 2026-07-12
 
