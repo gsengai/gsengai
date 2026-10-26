@@ -86,12 +86,25 @@ const HEX64 = /^[0-9a-f]{64}$/u;
  * every existing record_hash and the chain stay valid. The column is appended
  * last, matching the CREATE TABLE above, so fresh and upgraded stores share one
  * schema.
+ *
+ * Several processes may open the same old store at once. The check runs again
+ * inside an IMMEDIATE transaction — under the write lock — so whichever opener
+ * loses the race sees the column the winner added instead of failing with
+ * "duplicate column name". Already-migrated stores take the lock-free path.
  */
 function addMissingColumns(db: Database.Database): void {
-  const columns = db.prepare("PRAGMA table_info(evidence)").all() as { name: string }[];
-  if (!columns.some((column) => column.name === "signer_cert_sha256")) {
-    db.exec("ALTER TABLE evidence ADD COLUMN signer_cert_sha256 TEXT");
+  const hasSignerColumn = (): boolean =>
+    (db.prepare("PRAGMA table_info(evidence)").all() as { name: string }[]).some(
+      (column) => column.name === "signer_cert_sha256",
+    );
+  if (hasSignerColumn()) {
+    return;
   }
+  db.transaction(() => {
+    if (!hasSignerColumn()) {
+      db.exec("ALTER TABLE evidence ADD COLUMN signer_cert_sha256 TEXT");
+    }
+  }).immediate();
 }
 
 function rowToRecord(row: EvidenceRow): EvidenceRecord {
