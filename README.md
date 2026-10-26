@@ -7,7 +7,7 @@
 
 **Open-source transparency and provenance tooling for AI product teams.**
 
-Supports compliance with **EU AI Act Article 50** (applies 2 August 2026) and **California SB 942** — a technical layer you add in an afternoon:
+Supports compliance with **EU AI Act Article 50** (applies from 2 August 2026) and **California SB 942** — a technical layer you add in an afternoon:
 
 - **Log and fingerprint** your AI text output — hashes only, raw text never stored
 - **Sign AI images** with **C2PA Content Credentials**, preserving any existing provenance

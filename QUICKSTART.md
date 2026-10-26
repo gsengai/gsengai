@@ -208,7 +208,7 @@ wiped after every request. The demo also renders a live
 Markdown audit report rendered to HTML.
 
 The demo runs locally only for now; public deployment is prepared (see
-`apps/demo/DEPLOY.md`) but gated on the product name lock.
+`apps/demo/DEPLOY.md`) but gated on the public launch.
 
 ## Wire it into your own app
 

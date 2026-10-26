@@ -30,7 +30,10 @@ same status codes; nothing in this library pretends otherwise.
 Use the dev certificates for integration testing only. The signing key is
 committed to the repository and ships in the published `@gsengai/c2pa`
 package: it is public, it protects nothing, and it must protect nothing.
-Regenerate the pair anytime with `scripts/gen-dev-certs.sh`.
+Regenerate the pair anytime with `scripts/gen-dev-certs.sh` — but note that
+this changes the dev certificate's fingerprint. Detection (below) compares
+against the chain the installed package ships, so keep the previous chain's
+fingerprint to find outputs signed before the change.
 
 **Never add the dev root certificate to a C2PA trust list**, a validator's
 trust anchors, or your own trust configuration, and never trust the dev leaf
@@ -67,8 +70,8 @@ const devSigned = readFileSync("./evidence.jsonl", "utf8")
 (`openssl x509 -in dev-cert-chain.pem -noout -fingerprint -sha256` prints the
 same fingerprint in upper case with colons.) The CSV export (`exportCsv`, or
 `gsengai-audit export --format csv`) carries the same value in its last
-column. Records appended before `signer_cert_sha256` existed carry null and
-cannot be classified from the store alone.
+column. Records appended before 0.3.0, when `signer_cert_sha256` was added,
+carry null and cannot be classified from the store alone.
 
 For a single asset, `readManifest` reports `signedWithDevCertificate`, matched
 by leaf-certificate fingerprint against the chain shipped with the installed

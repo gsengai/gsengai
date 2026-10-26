@@ -4,15 +4,19 @@ Publishing to npm is currently **manual** — done from a maintainer's machine w
 
 ## Publishing a release
 
-1. Bump the versions you are releasing (keep them in step for 0.x):
+1. **Prepare the release on a branch** and land it through a PR, so what you publish is exactly what CI checked on `main`:
    ```sh
-   pnpm -r exec npm version <patch|minor> --no-git-tag-version
+   git checkout -b release/vX.Y.Z
+   pnpm -r exec npm version <patch|minor> --no-git-tag-version   # keep versions in step for 0.x
    ```
    - **Always bump `@gsengai/core` and `@gsengai/c2pa` together.** c2pa depends on core as `workspace:^`, which is rewritten to `^<core's version>` at pack time. A c2pa release packed against an unbumped core lets installs resolve an older core that silently drops what c2pa records (for example `signer_cert_sha256`).
    - Set `VERSION` in `packages/c2pa/src/constants.ts` to the new c2pa version. It is recorded inside every signed manifest.
-2. Move the relevant notes in `CHANGELOG.md` under a new `## [x.y.z]` heading.
-3. Verify and publish from your machine, **core first**:
+   - Move the relevant notes in `CHANGELOG.md` under a new `## [x.y.z] — YYYY-MM-DD` heading.
+
+   Commit as `Release vX.Y.Z`, push the branch, open a PR, and merge it (as a merge commit, not squashed) once CI is green.
+2. **Verify and publish from the merged `main`, core first:**
    ```sh
+   git checkout main && git pull
    pnpm install --frozen-lockfile
    pnpm test && pnpm build
    # c2pa's packed dependency range must name the new core version:
@@ -20,16 +24,20 @@ Publishing to npm is currently **manual** — done from a maintainer's machine w
      && tar -xOzf /tmp/gsengai-c2pa-*.tgz package/package.json | grep '"@gsengai/core"'
    npm login                                   # if not already; completes 2FA
    pnpm --filter @gsengai/core publish --access public --no-git-checks
-   pnpm -r publish --access public --no-git-checks   # the rest; already-published versions are skipped
+   pnpm -r --filter '!@gsengai/core' publish --access public --no-git-checks   # all the others
    ```
-   Publish `@gsengai/core` before `@gsengai/c2pa`: c2pa's range on core comes from core's version at pack time, so until that core version is on npm, installs of the new c2pa cannot resolve it. Complete the browser 2FA prompt when asked. If a package times out mid-run (the OTP window is short), re-run just that one: `pnpm --filter @gsengai/<name> publish --access public --no-git-checks` — and never publish c2pa while the core version it names is not yet live.
-4. Commit, tag, and push:
+   - Publish `@gsengai/core` before `@gsengai/c2pa`: c2pa's range on core comes from core's version at pack time, so until that core version is on npm, installs of the new c2pa cannot resolve it.
+   - **Exclude core explicitly in the second command.** npm takes a minute or two to process a new version, and during that window `pnpm -r publish` does not see it as published, tries again, and fails with `409 … Cannot publish over previously staged version` (seen on 0.3.0). That 409 overwrites nothing and is not an interrupted publish — no bump needed.
+   - Complete the browser 2FA prompt for each package. If a run stops partway, check what is live first (`npm view @gsengai/<name>@X.Y.Z version` — a package can take a minute to show up after its `+ @gsengai/<name>@X.Y.Z` line), then publish only the missing ones: `pnpm --filter @gsengai/<name> publish --access public --no-git-checks`. Never publish c2pa while the core version it names is not yet live.
+3. **Create the GitHub Release** for the merge commit — still checked out from step 2. This also creates the tag on GitHub (a plain `git push` does not push tags). Write the notes (the CHANGELOG section plus upgrade notes) to `release-notes.md` first:
    ```sh
-   git commit -am "Release vX.Y.Z"
-   git tag vX.Y.Z
-   git push --follow-tags
+   gh release create vX.Y.Z --target "$(git rev-parse HEAD)" --title vX.Y.Z --notes-file release-notes.md
    ```
-5. Create a GitHub Release for the tag. The **Release verification** workflow installs, tests, and builds the tagged commit (it does not publish).
+   The **Release verification** workflow then installs, tests, and builds the tagged commit (it does not publish).
+4. **Deprecate superseded versions** when the release fixes a security issue in them, with the reason and the upgrade path — as for `@gsengai/c2pa` before 0.3.0:
+   ```sh
+   npm deprecate @gsengai/<name>@"<X.Y.Z" "<what is wrong>. Upgrade to >=X.Y.Z, <what changed>."
+   ```
 
 ## Notes
 
