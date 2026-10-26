@@ -10,7 +10,7 @@ Part of [gsengai](https://github.com/gsengai/gsengai), open-source transparency 
 pnpm add @gsengai/anthropic @gsengai/core
 ```
 
-Requires Node ≥ 22.
+Requires Node ≥ 22 and `@anthropic-ai/sdk` 0.39 or later, including 1.x.
 
 ## Usage
 

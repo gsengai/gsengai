@@ -11,7 +11,7 @@
 import { mkdirSync, rmSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { createEvidenceStore } from "@gsengai/core";
+import { createEvidenceStore, sha256Hex } from "@gsengai/core";
 
 const outDir = join(dirname(fileURLToPath(import.meta.url)), ".out");
 mkdirSync(outDir, { recursive: true });
@@ -50,6 +50,8 @@ store.append({
   outputBytes: Buffer.from("stand-in for signed image bytes"),
   manifestRef: "urn:c2pa:example-manifest-label",
   markingMethods: ["c2pa"],
+  // @gsengai/c2pa records the signing certificate's fingerprint on every signing (0.3.0+).
+  signerCertSha256: sha256Hex("stand-in for the signing certificate"),
 });
 
 const csvPath = join(outDir, "audit-export.csv");

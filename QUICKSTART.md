@@ -54,7 +54,7 @@ It runs from a clone of this repository, exercising the bundled examples and dem
 
 ```sh
 export OPENAI_API_KEY=sk-...
-pnpm quickstart              # same flow, live API (model: gpt-4o-mini)
+pnpm quickstart              # same flow, live API (model: gpt-6-luna)
 GSENGAI_QUICKSTART_MODEL=gpt-4.1 pnpm quickstart   # pick another model
 ```
 

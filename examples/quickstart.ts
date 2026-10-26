@@ -73,7 +73,7 @@ async function makeClient(): Promise<{ client: ChatClient; mode: string; model: 
       return {
         client: new OpenAI({ apiKey }) as unknown as ChatClient,
         mode: "live OpenAI API (OPENAI_API_KEY detected)",
-        model: process.env.GSENGAI_QUICKSTART_MODEL ?? "gpt-4o-mini",
+        model: process.env.GSENGAI_QUICKSTART_MODEL ?? "gpt-6-luna",
       };
     } catch (err) {
       console.warn(
