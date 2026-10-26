@@ -20,7 +20,7 @@ Guidance for AI-assisted work in this repository — and a briefing for human co
 - Bump `@gsengai/core` and `@gsengai/c2pa` together and publish core first: c2pa's dependency range on core is written from core's version at pack time (`RELEASING.md`).
 - Publishing is manual — see `RELEASING.md` (including the 24-hour tombstone rule for interrupted publishes). Do not attempt to automate publishing; the blockers are tracked in issue #2.
 - The bundled dev certificates are intentionally untrusted; keep every place that touches them honest about it.
-- The secret-scanner allowlist (`.gitleaks.toml`, `.github/secret_scanning.yml`) covers exactly `packages/c2pa/dev-certs/dev-private-key.pem`. Never widen it to a directory, a glob, or `*.pem`: an alert on any other file is a real incident (`SECURITY.md`). The guard test `packages/c2pa/test/secret-scan-allowlist.test.ts` enforces this (ADR-0037).
+- The secret-scanner allowlist (`.gitleaks.toml`, `.github/secret_scanning.yml`) covers exactly `packages/c2pa/dev-certs/dev-private-key.pem`. Never widen it to a directory, a glob, or `*.pem`: an alert on any other file is a real incident (`SECURITY.md`). The guard test `packages/c2pa/test/secret-scan-allowlist.test.ts` enforces this, and the CI `secret-scan` job runs gitleaks over the full history with that config (ADR-0037, ADR-0041).
 
 ## Orientation
 

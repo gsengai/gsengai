@@ -36,3 +36,25 @@ jobs:
       - run: pnpm typecheck
       - run: pnpm test
       - run: pnpm build
+
+  secret-scan:
+    # Full-history secret scan with the committed .gitleaks.toml: gitleaks'
+    # default rules plus the one-path allowlist for the public dev key
+    # (ADR-0037). GitHub's own secret scanning here covers provider tokens
+    # only, not private keys (ADR-0041). The binary is pinned by version and
+    # sha256, like c2patool above — no third-party action, no license key, no
+    # repository secret.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # every commit, not just the tip
+      - name: Install gitleaks (pinned)
+        run: |
+          cd "$RUNNER_TEMP"
+          curl -sSfL -o gitleaks.tar.gz "https://github.com/gitleaks/gitleaks/releases/download/v8.30.1/gitleaks_8.30.1_linux_x64.tar.gz"
+          echo "551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb  gitleaks.tar.gz" | sha256sum -c -
+          tar -xzf gitleaks.tar.gz gitleaks
+          echo "$RUNNER_TEMP" >> "$GITHUB_PATH"
+      # --redact keeps any finding's secret value out of this public log.
+      - run: gitleaks git --no-banner --redact --verbose .
