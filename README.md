@@ -53,7 +53,7 @@ pnpm add @gsengai/openai @gsengai/anthropic @gsengai/ai-sdk @gsengai/c2pa @gseng
 
 Requires Node >= 22. The `@gsengai/*` packages are published on npm. For production integration notes, see [docs/production.md](./docs/production.md).
 
-**Platform support:** text logging and fingerprinting, the evidence store, audit export, and the disclosure kit run anywhere Node 22 runs. C2PA image signing works out of the box on macOS (Apple Silicon) via the native `@contentauth/c2pa-node` binary, and on Linux, Windows, and Intel macs through an automatic [c2patool](https://github.com/contentauth/c2pa-rs/tree/main/cli) fallback — install c2patool ([prebuilt binaries](https://github.com/contentauth/c2pa-rs/releases) or `cargo install c2patool`) and have it on `PATH`. Details in [docs/production.md](./docs/production.md).
+**Platform support:** text logging and fingerprinting, the evidence store, audit export, and the disclosure kit run on Node 22 or later. C2PA image signing works out of the box on macOS (Apple Silicon) via the native `@contentauth/c2pa-node` binary, and on Linux, Windows, and Intel macs through an automatic [c2patool](https://github.com/contentauth/c2pa-rs/tree/main/cli) fallback — install c2patool ([prebuilt binaries](https://github.com/contentauth/c2pa-rs/releases) or `cargo install c2patool`) and have it on `PATH`. Details in [docs/production.md](./docs/production.md).
 
 ## Quickstart
 
@@ -68,8 +68,8 @@ The text evidence pipeline, the evidence store, C2PA image signing, the disclosu
 | Package | What it does |
 | --- | --- |
 | `@gsengai/core` | Append-only, hash-chained SQLite evidence store; SHA-256 text fingerprinting (raw + normalized); detection lookups; audit exports — streaming JSONL and CSV, plus a human-readable Markdown audit report (`buildAuditReport`, `gsengai-audit` CLI) that surfaces chain integrity prominently. Hashes and metadata only — raw prompts/outputs never persist, in the store or in any export. |
-| `@gsengai/openai` | `withEvidence(client)` wrapper for the OpenAI Node SDK — `chat.completions.create` and `responses.create`, streaming and non-streaming. |
-| `@gsengai/anthropic` | `withEvidence(client)` wrapper for the Anthropic TypeScript SDK — `messages.create` (stream + non-stream) and the `messages.stream()` helper. |
+| `@gsengai/openai` | `withEvidence(client)` wrapper for the OpenAI Node SDK (`openai` 6 and 7) — `chat.completions.create` and `responses.create`, streaming and non-streaming. |
+| `@gsengai/anthropic` | `withEvidence(client)` wrapper for the Anthropic TypeScript SDK (`@anthropic-ai/sdk` 0.39 and later, including 1.x) — `messages.create` (stream + non-stream) and the `messages.stream()` helper. |
 | `@gsengai/ai-sdk` | `evidenceMiddleware()` — a `LanguageModelMiddleware` for the Vercel AI SDK (`ai@7`) via `wrapLanguageModel`. |
 | `@gsengai/c2pa` | `createImageSigner(...)` — signs PNG/JPEG with C2PA manifests declaring AI generation, preserves pre-existing manifests as chained ingredients (never overwrites), writes an evidence record per signing. Dev certificates bundled for integration testing, used only on explicit opt-in (`devCertificates: true`); see [docs/CERTIFICATES.md](./docs/CERTIFICATES.md). |
 | `@gsengai/disclosure` | Article 50 disclosure UI kit: `<AIInteractionNotice/>`, `<AIGeneratedBadge/>`, `<SyntheticContentLabel/>` as React components **and** plain-HTML string functions, localized EN/DE/FR, bundling the official EU transparency icons with full provenance. Zero runtime dependencies; see [docs/DISCLOSURE.md](./docs/DISCLOSURE.md). |
@@ -80,7 +80,7 @@ Wrappers never mutate or block model responses: they hash the generated text in 
 
 **Audit artifacts:** `store.exportCsv(path, filter?)` and `store.buildAuditReport({ path, filter })` (or the `gsengai-audit` CLI) turn the evidence log into the documents a team hands its counsel or a supervisory authority: a CSV of all records and a Markdown audit report with an Integrity section (`verifyChain()` outcome — verified or BROKEN — always reported, never suppressed), summary breakdowns, the full record listing, and the limits block above. See [QUICKSTART.md](./QUICKSTART.md#export-audit-artifacts-csv--audit-report-under-5-minutes).
 
-The HTTP detection endpoint arrives in a later release (see [ROADMAP.md](./ROADMAP.md)).
+An HTTP detection endpoint is under consideration (see [ROADMAP.md](./ROADMAP.md)).
 
 ## Production
 
@@ -94,7 +94,7 @@ There is also a quiet nod to [Sengai Gibon](https://en.wikipedia.org/wiki/Sengai
 
 ## Built with
 
-Fittingly for a project about AI transparency: this was built with [Claude Code](https://claude.com/claude-code), Anthropic's agentic coding tool. The bulk of the implementation was done with Claude Fable 5, the release engineering with Claude Opus 4.8, and the 0.3.0 security hardening and release with Claude Opus 5.5. Design decisions, review, and direction are the maintainer's.
+Fittingly for a project about AI transparency: this was built with [Claude Code](https://claude.com/claude-code), Anthropic's agentic coding tool. The bulk of the implementation was done with Claude Fable 5, the release engineering with Claude Opus 4.8, and the 0.3.x security hardening, SDK compatibility work, and releases with Claude Opus 5.5. Design decisions, review, and direction are the maintainer's.
 
 ## License
 

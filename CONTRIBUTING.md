@@ -14,7 +14,7 @@ pnpm lint        # biome
 pnpm typecheck   # tsc
 ```
 
-All four gates should be green before you open a PR. Tests never hit the network; mock SDK clients, and use the `ai/test` mock models for the Vercel AI SDK.
+All four gates should be green before you open a PR. Tests never hit the network: unit tests mock SDK clients, the `sdk-compat` tests drive the real OpenAI and Anthropic clients against a fake `fetch`, and the Vercel AI SDK tests use the `ai/test` mock models.
 
 ## Ground rules
 

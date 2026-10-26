@@ -103,11 +103,11 @@ For manifests that public validators accept, you need:
 2. **Key storage that matches the value of the credential** — keep the private
    key in a KMS or HSM, not on disk. `createImageSigner` accepts file paths
    (`certPath`/`keyPath`) for locally held keys; KMS/HSM-backed signing via a
-   callback signer is planned post-MVP.
-3. **A timestamp authority (optional, post-MVP here)** — a TSA countersignature
-   keeps manifests verifiable after the signing certificate expires. This MVP
-   deliberately configures no TSA URL (tests and default operation are fully
-   offline).
+   callback signer is under consideration (see [ROADMAP.md](../ROADMAP.md)).
+3. **A timestamp authority (optional; not supported here yet)** — a TSA
+   countersignature keeps manifests verifiable after the signing certificate
+   expires. This library deliberately configures no TSA URL (tests and default
+   operation are fully offline).
 
 When you have a production certificate:
 
