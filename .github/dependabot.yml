@@ -1,0 +1,55 @@
+# Dependabot version updates (ADR-0043). Security updates are enabled in the
+# repository settings and are not delayed by the cooldown below.
+#
+# Two kinds of update are not routine: an SDK major (fails the peer-range
+# guard in the SDK packages' tests until the published peerDependencies range
+# is widened, which then ships in a release), and @contentauth/c2pa-node
+# (exact-pinned; re-check the c2pa-rs settings keys and backend equivalence
+# per AGENTS.md before merging). Both arrive as their own pull requests.
+version: 2
+updates:
+  # The pnpm workspace: Dependabot reads pnpm-workspace.yaml and
+  # pnpm-lock.yaml from the root and updates every package.json that names
+  # the dependency in one pull request.
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    # Newly published versions wait a week, so a compromised release is
+    # likelier to be caught and pulled before it is proposed here.
+    cooldown:
+      default-days: 7
+    # Raise a range only when a release falls outside it: the published
+    # packages' dependency ranges stay as wide as they are.
+    versioning-strategy: increase-if-necessary
+    open-pull-requests-limit: 10
+    ignore:
+      # The type definitions track the minimum supported Node (engines >=22).
+      - dependency-name: "@types/node"
+        update-types: ["version-update:semver-major"]
+    groups:
+      sdks:
+        patterns: ["openai", "@anthropic-ai/sdk", "ai", "@ai-sdk/*"]
+        update-types: [minor, patch]
+      dev-tooling:
+        patterns: ["*"]
+        dependency-type: development
+        exclude-patterns: ["openai", "@anthropic-ai/sdk", "ai", "@ai-sdk/*", "@contentauth/*"]
+        update-types: [minor, patch]
+      runtime:
+        patterns: ["*"]
+        dependency-type: production
+        exclude-patterns: ["@contentauth/*"]
+        update-types: [minor, patch]
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    cooldown:
+      default-days: 7
+    groups:
+      actions:
+        patterns: ["*"]

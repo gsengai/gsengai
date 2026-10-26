@@ -4,12 +4,13 @@
 // JSON and server-sent events, so the SDK's own parsing, streaming, and
 // APIPromise code runs through the wrapper — with no network access. A breaking
 // SDK release (e.g. a Dependabot bump) fails here.
-import { mkdtempSync, rmSync } from "node:fs";
+import { mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { createEvidenceStore, type EvidenceStore, sha256Hex } from "@gsengai/core";
 import { withEvidence } from "@gsengai/openai";
 import OpenAI from "openai";
+import { satisfies } from "semver";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 let dir: string;
@@ -204,5 +205,22 @@ describe(`@gsengai/openai against the real openai SDK (${OpenAI.name} client)`, 
     const records = store.findByOutputHash(sha256Hex("streamed compat"));
     expect(records).toHaveLength(1);
     expect(records[0]?.model).toBe("gpt-compat");
+  });
+});
+
+// The tests above can pass on a new SDK major (e.g. a Dependabot bump) while
+// npm still refuses to install @gsengai/openai next to it, because the published
+// peer range excludes it. That gap went unnoticed for three months when
+// openai 7 shipped. Widening the range is a release decision, so fail here.
+describe("@gsengai/openai peer range", () => {
+  it("includes the openai version these tests ran against", () => {
+    const readJson = (rel: string): { version: string; peerDependencies: Record<string, string> } =>
+      JSON.parse(readFileSync(new URL(rel, import.meta.url), "utf8"));
+    const range = readJson("../package.json").peerDependencies.openai;
+    const tested = readJson("../node_modules/openai/package.json").version;
+    expect(
+      range !== undefined && satisfies(tested, range),
+      `openai ${tested} is outside @gsengai/openai's peerDependencies range "${range}": widen it (and release)`,
+    ).toBe(true);
   });
 });

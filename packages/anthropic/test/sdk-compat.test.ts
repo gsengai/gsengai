@@ -4,12 +4,13 @@
 // serving recorded-shape JSON and server-sent events, so the SDK's own parsing,
 // streaming, and MessageStream code runs through the wrapper — with no network
 // access. A breaking SDK release (e.g. a Dependabot bump) fails here.
-import { mkdtempSync, rmSync } from "node:fs";
+import { mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import Anthropic from "@anthropic-ai/sdk";
 import { withEvidence } from "@gsengai/anthropic";
 import { createEvidenceStore, type EvidenceStore, sha256Hex } from "@gsengai/core";
+import { satisfies } from "semver";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 let dir: string;
@@ -136,5 +137,22 @@ describe("@gsengai/anthropic against the real @anthropic-ai/sdk", () => {
     const records = store.findByOutputHash(sha256Hex("streamed helper"));
     expect(records).toHaveLength(1);
     expect(records[0]?.model).toBe(MODEL);
+  });
+});
+
+// The tests above can pass on a new SDK major (e.g. a Dependabot bump) while
+// npm still refuses to install @gsengai/anthropic next to it, because the published
+// peer range excludes it. That gap went unnoticed for three months when
+// openai 7 shipped. Widening the range is a release decision, so fail here.
+describe("@gsengai/anthropic peer range", () => {
+  it("includes the @anthropic-ai/sdk version these tests ran against", () => {
+    const readJson = (rel: string): { version: string; peerDependencies: Record<string, string> } =>
+      JSON.parse(readFileSync(new URL(rel, import.meta.url), "utf8"));
+    const range = readJson("../package.json").peerDependencies["@anthropic-ai/sdk"];
+    const tested = readJson("../node_modules/@anthropic-ai/sdk/package.json").version;
+    expect(
+      range !== undefined && satisfies(tested, range),
+      `@anthropic-ai/sdk ${tested} is outside @gsengai/anthropic's peerDependencies range "${range}": widen it (and release)`,
+    ).toBe(true);
   });
 });

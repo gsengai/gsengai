@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
+import { readFileSync } from "node:fs";
 import { evidenceMiddleware } from "@gsengai/ai-sdk";
 import {
   createEvidenceStore,
@@ -9,6 +10,7 @@ import {
 } from "@gsengai/core";
 import { type LanguageModelMiddleware, simulateReadableStream, wrapLanguageModel } from "ai";
 import { MockLanguageModelV4 } from "ai/test";
+import { satisfies } from "semver";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 type GenerateResult = Awaited<ReturnType<NonNullable<LanguageModelMiddleware["wrapGenerate"]>>>;
@@ -172,5 +174,22 @@ describe("@gsengai/ai-sdk — wrapStream", () => {
       }
     }
     expect(store.count()).toBe(0);
+  });
+});
+
+// The tests above can pass on a new SDK major (e.g. a Dependabot bump) while
+// npm still refuses to install @gsengai/ai-sdk next to it, because the published
+// peer range excludes it. That gap went unnoticed for three months when
+// openai 7 shipped. Widening the range is a release decision, so fail here.
+describe("@gsengai/ai-sdk peer range", () => {
+  it("includes the ai version these tests ran against", () => {
+    const readJson = (rel: string): { version: string; peerDependencies: Record<string, string> } =>
+      JSON.parse(readFileSync(new URL(rel, import.meta.url), "utf8"));
+    const range = readJson("../package.json").peerDependencies.ai;
+    const tested = readJson("../node_modules/ai/package.json").version;
+    expect(
+      range !== undefined && satisfies(tested, range),
+      `ai ${tested} is outside @gsengai/ai-sdk's peerDependencies range "${range}": widen it (and release)`,
+    ).toBe(true);
   });
 });
