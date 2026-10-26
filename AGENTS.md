@@ -21,6 +21,7 @@ Guidance for AI-assisted work in this repository — and a briefing for human co
 - Publishing is manual — see `RELEASING.md` (including the 24-hour tombstone rule for interrupted publishes). Do not attempt to automate publishing; the blockers are tracked in issue #2.
 - The bundled dev certificates are intentionally untrusted; keep every place that touches them honest about it.
 - The secret-scanner allowlist (`.gitleaks.toml`, `.github/secret_scanning.yml`) covers exactly `packages/c2pa/dev-certs/dev-private-key.pem`. Never widen it to a directory, a glob, or `*.pem`: an alert on any other file is a real incident (`SECURITY.md`). The guard test `packages/c2pa/test/secret-scan-allowlist.test.ts` enforces this, and the CI `secret-scan` job runs gitleaks over the full history with that config (ADR-0037, ADR-0041).
+- `main` is protected by the "Protect main" ruleset: `gates (ubuntu-latest)`, `gates (macos-latest)`, and `secret-scan` must pass before a merge, force-pushes and deletion are blocked, and nobody can bypass it — every change lands through a PR. Those check names are load-bearing: renaming a job or matrix entry in `.github/workflows/ci.yml` requires updating the ruleset (Settings → Rules → Rulesets) in the same change, or every PR waits for a check that never runs.
 
 ## Orientation
 
