@@ -39,7 +39,8 @@ CREATE TABLE IF NOT EXISTS evidence (
   manifest_ref TEXT,
   disclosure_context TEXT,
   prev_hash TEXT,
-  record_hash TEXT NOT NULL
+  record_hash TEXT NOT NULL,
+  signer_cert_sha256 TEXT
 );
 CREATE INDEX IF NOT EXISTS idx_evidence_output_hash
   ON evidence (output_hash);
@@ -73,6 +74,24 @@ interface EvidenceRow {
   disclosure_context: string | null;
   prev_hash: string | null;
   record_hash: string;
+  signer_cert_sha256: string | null;
+}
+
+const HEX64 = /^[0-9a-f]{64}$/u;
+
+/**
+ * Upgrade path for stores created before `signer_cert_sha256` (ADR-0039):
+ * ALTER TABLE … ADD COLUMN only edits the schema — existing rows are not
+ * rewritten and read the new column as NULL, which the record hash omits, so
+ * every existing record_hash and the chain stay valid. The column is appended
+ * last, matching the CREATE TABLE above, so fresh and upgraded stores share one
+ * schema.
+ */
+function addMissingColumns(db: Database.Database): void {
+  const columns = db.prepare("PRAGMA table_info(evidence)").all() as { name: string }[];
+  if (!columns.some((column) => column.name === "signer_cert_sha256")) {
+    db.exec("ALTER TABLE evidence ADD COLUMN signer_cert_sha256 TEXT");
+  }
 }
 
 function rowToRecord(row: EvidenceRow): EvidenceRecord {
@@ -89,14 +108,21 @@ function rowToRecord(row: EvidenceRow): EvidenceRecord {
     marking_methods: JSON.parse(row.marking_methods) as string[],
     manifest_ref: row.manifest_ref,
     disclosure_context: row.disclosure_context,
+    signer_cert_sha256: row.signer_cert_sha256,
     prev_hash: row.prev_hash,
     record_hash: row.record_hash,
   };
 }
 
-/** `record_hash = sha256(canonicalJson(all fields above))` per PRD §4. */
+/**
+ * `record_hash = sha256(canonicalJson(all fields above))` per PRD §4 — except
+ * that a null `signer_cert_sha256` is left out of the hashed body (ADR-0039).
+ * Records written before the field existed, and all unsigned records, hash
+ * byte-for-byte as before; a set value is covered like any other field.
+ */
 function computeRecordHash(body: Omit<EvidenceRecord, "record_hash">): string {
-  return sha256Hex(canonicalJson(body));
+  const { signer_cert_sha256, ...withoutSigner } = body;
+  return sha256Hex(canonicalJson(signer_cert_sha256 === null ? withoutSigner : body));
 }
 
 function requireNonEmptyString(value: unknown, name: string): string {
@@ -141,6 +167,18 @@ function resolveOutputHashes(input: AppendEvidenceInput): {
     output_hash_normalized: given.outputHashNormalized ?? null,
     hash_version: given.hashVersion ?? HASH_VERSION,
   };
+}
+
+function resolveSignerCertSha256(value: string | null | undefined): string | null {
+  if (value === undefined || value === null) {
+    return null;
+  }
+  if (typeof value !== "string" || !HEX64.test(value)) {
+    throw new TypeError(
+      "gsengai: signerCertSha256 must be a SHA-256 fingerprint as 64 lowercase hex characters",
+    );
+  }
+  return value;
 }
 
 function normalizeInstant(value: string, name: string): string {
@@ -210,16 +248,17 @@ export function createEvidenceStore(options: CreateEvidenceStoreOptions): Eviden
   const db = new Database(storePath);
   db.pragma("journal_mode = WAL");
   db.exec(SCHEMA_SQL);
+  addMissingColumns(db);
 
   const insertStmt = db.prepare(`
     INSERT INTO evidence (
       id, ts, modality, model, system_id, prompt_hash, output_hash,
       output_hash_normalized, hash_version, marking_methods, manifest_ref,
-      disclosure_context, prev_hash, record_hash
+      disclosure_context, prev_hash, record_hash, signer_cert_sha256
     ) VALUES (
       @id, @ts, @modality, @model, @system_id, @prompt_hash, @output_hash,
       @output_hash_normalized, @hash_version, @marking_methods, @manifest_ref,
-      @disclosure_context, @prev_hash, @record_hash
+      @disclosure_context, @prev_hash, @record_hash, @signer_cert_sha256
     )
   `);
   const lastHashStmt = db.prepare("SELECT record_hash FROM evidence ORDER BY seq DESC LIMIT 1");
@@ -287,6 +326,7 @@ export function createEvidenceStore(options: CreateEvidenceStoreOptions): Eviden
         marking_methods: input.markingMethods ?? ["logging"],
         manifest_ref: input.manifestRef ?? null,
         disclosure_context: input.disclosureContext ?? null,
+        signer_cert_sha256: resolveSignerCertSha256(input.signerCertSha256),
       };
       return runAppend.immediate(body);
     },

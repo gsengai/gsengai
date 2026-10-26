@@ -68,6 +68,7 @@ describe("render/a11y smoke (both flows)", () => {
           marking_methods: ["logging"],
           manifest_ref: null,
           disclosure_context: null,
+          signer_cert_sha256: null,
           prev_hash: null,
           record_hash: "c".repeat(64),
         }}

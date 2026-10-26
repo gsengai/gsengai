@@ -2,15 +2,13 @@
 import { readFileSync } from "node:fs";
 import { readFile } from "node:fs/promises";
 import { basename } from "node:path";
-import { fileURLToPath } from "node:url";
 import { type EvidenceRecord, type EvidenceStore, type FailMode, safeAppend } from "@gsengai/core";
 import { resolveBackend } from "./backend";
+import { DEV_CERT_PATH, DEV_KEY_PATH, leafCertificateSha256 } from "./cert";
 import { detectImageMime } from "./mime";
 
 export { GENERATOR_ASSERTION_LABEL, TRAINED_ALGORITHMIC_MEDIA } from "./constants";
 
-const DEV_CERT_PATH = fileURLToPath(new URL("../dev-certs/dev-cert-chain.pem", import.meta.url));
-const DEV_KEY_PATH = fileURLToPath(new URL("../dev-certs/dev-private-key.pem", import.meta.url));
 const CERTIFICATES_DOC = "https://github.com/gsengai/gsengai/blob/main/docs/CERTIFICATES.md";
 
 let devCertWarningShown = false;
@@ -141,6 +139,8 @@ export function createImageSigner(options: CreateImageSignerOptions): ImageSigne
   // Read eagerly so a bad path fails at construction, not at first sign.
   const certBytes = readFileSync(certPath);
   const keyBytes = readFileSync(keyPath);
+  // Recorded on every signing as signer_cert_sha256 (ADR-0039).
+  const signerCertSha256 = leafCertificateSha256(certBytes, "certPath");
 
   return {
     async signImage(sign: SignImageOptions): Promise<SignImageResult> {
@@ -191,6 +191,7 @@ export function createImageSigner(options: CreateImageSignerOptions): ImageSigne
           outputBytes: signedBytes,
           manifestRef: manifestLabel,
           markingMethods: ["c2pa"],
+          signerCertSha256,
           promptHash: sign.promptHash ?? null,
           disclosureContext: sign.disclosureContext ?? null,
         },

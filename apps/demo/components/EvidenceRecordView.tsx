@@ -4,7 +4,7 @@
 // what is (and is not) persisted.
 import type { ChainVerification, EvidenceRecord } from "@gsengai/core";
 
-/** §4 field order — rendered exactly as persisted. */
+/** §4 field order — rendered exactly as persisted (and as the CSV export orders it). */
 const FIELDS = [
   "id",
   "ts",
@@ -20,6 +20,7 @@ const FIELDS = [
   "disclosure_context",
   "prev_hash",
   "record_hash",
+  "signer_cert_sha256",
 ] as const;
 
 function renderValue(record: EvidenceRecord, field: (typeof FIELDS)[number]) {

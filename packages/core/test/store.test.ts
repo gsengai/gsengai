@@ -4,6 +4,7 @@ import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
+  canonicalJson,
   createEvidenceStore,
   type EvidenceStore,
   hashPrompt,
@@ -65,6 +66,7 @@ describe("evidence store — append (PRD §4)", () => {
         "marking_methods",
         "manifest_ref",
         "disclosure_context",
+        "signer_cert_sha256",
         "prev_hash",
         "record_hash",
       ].sort(),
@@ -82,6 +84,7 @@ describe("evidence store — append (PRD §4)", () => {
     expect(record.marking_methods).toEqual(["logging"]);
     expect(record.manifest_ref).toBeNull();
     expect(record.disclosure_context).toBeNull();
+    expect(record.signer_cert_sha256).toBeNull(); // text is never C2PA-signed
     expect(record.prev_hash).toBeNull(); // genesis record
     expect(record.record_hash).toMatch(HEX64);
   });
@@ -146,6 +149,69 @@ describe("evidence store — append (PRD §4)", () => {
     expect(() => createEvidenceStore({ path: join(dir, "raw.db"), storeRawContent: true })).toThrow(
       NotImplementedError,
     );
+  });
+});
+
+describe("evidence store — signer_cert_sha256 (ADR-0039)", () => {
+  const SIGNER = sha256Hex("example leaf certificate DER");
+
+  function appendSignedImage(signerCertSha256: string | null | undefined) {
+    return store.append({
+      modality: "image",
+      model: "test-image-model",
+      systemId: "test-system",
+      outputBytes: Buffer.from(`signed image ${randomUUID()}`),
+      manifestRef: "urn:c2pa:test-label",
+      markingMethods: ["c2pa"],
+      signerCertSha256,
+    });
+  }
+
+  function hashWithout(record: object, ...omit: string[]): string {
+    const body = Object.fromEntries(Object.entries(record).filter(([k]) => !omit.includes(k)));
+    return sha256Hex(canonicalJson(body));
+  }
+
+  it("persists a set fingerprint, returns it from lookups, and the chain verifies", () => {
+    appendText("before");
+    const record = appendSignedImage(SIGNER);
+    expect(record.signer_cert_sha256).toBe(SIGNER);
+    expect(store.findByOutputHash(record.output_hash)).toEqual([record]);
+    expect(store.verifyChain()).toEqual({ ok: true, checked: 2 });
+  });
+
+  it("a set fingerprint is covered by record_hash", () => {
+    const record = appendSignedImage(SIGNER);
+    expect(record.record_hash).toBe(hashWithout(record, "record_hash"));
+    expect(record.record_hash).not.toBe(hashWithout(record, "record_hash", "signer_cert_sha256"));
+  });
+
+  it("a null fingerprint is left out of the hashed body — the pre-field hash rule, unchanged", () => {
+    for (const record of [
+      appendText("text record"),
+      appendSignedImage(null),
+      appendSignedImage(undefined),
+    ]) {
+      expect(record.signer_cert_sha256).toBeNull();
+      expect(record.record_hash).toBe(hashWithout(record, "record_hash", "signer_cert_sha256"));
+    }
+  });
+
+  it("rejects a fingerprint that is not 64 lowercase hex characters", () => {
+    for (const bad of [SIGNER.toUpperCase(), SIGNER.slice(1), `${SIGNER}0`, "", "AB:CD", 42]) {
+      expect(() => appendSignedImage(bad as string)).toThrow(/signerCertSha256/u);
+    }
+    expect(store.count()).toBe(0);
+  });
+
+  it("a fresh store carries the column last — the same schema an upgraded store gets", () => {
+    const raw = new Database(dbPath, { readonly: true });
+    const columns = (raw.prepare("PRAGMA table_info(evidence)").all() as { name: string }[]).map(
+      (c) => c.name,
+    );
+    raw.close();
+    expect(columns.at(-1)).toBe("signer_cert_sha256");
+    expect(columns.at(-2)).toBe("record_hash");
   });
 });
 
@@ -303,6 +369,26 @@ describe("evidence store — JSONL export (PRD C3)", () => {
     expect(lines).toHaveLength(3);
     const parsed = lines.map((line) => JSON.parse(line));
     expect(parsed).toEqual(records);
+  });
+
+  it("includes signer_cert_sha256 on every line — null for text, the fingerprint for signed media", async () => {
+    const signer = sha256Hex("example leaf certificate DER");
+    appendText("text");
+    store.append({
+      modality: "image",
+      model: "m",
+      systemId: "s",
+      outputBytes: Buffer.from("signed image bytes"),
+      markingMethods: ["c2pa"],
+      signerCertSha256: signer,
+    });
+    const outPath = join(dir, "export.jsonl");
+    await store.exportJsonl(outPath);
+    const parsed = readFileSync(outPath, "utf8")
+      .trim()
+      .split("\n")
+      .map((line) => JSON.parse(line) as Record<string, unknown>);
+    expect(parsed.map((r) => r.signer_cert_sha256)).toEqual([null, signer]);
   });
 });
 

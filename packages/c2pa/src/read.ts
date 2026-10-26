@@ -1,7 +1,9 @@
 // SPDX-License-Identifier: Apache-2.0
 import { readFile } from "node:fs/promises";
 import { resolveBackend } from "./backend";
-import { detectImageMime } from "./mime";
+import { certificateSha256, devCertificateSha256 } from "./cert";
+import { manifestSigningCertificate } from "./jumbf";
+import { detectImageMime, type ImageMime } from "./mime";
 
 /** Validation status codes as reported by the C2PA validator, grouped by outcome. */
 export interface ValidationStatusCodes {
@@ -26,6 +28,15 @@ export interface ManifestSummary {
   validationStatusCodes: ValidationStatusCodes;
   /** All manifest labels in the store — the provenance chain, active first is not guaranteed. */
   manifestLabels: string[];
+  /**
+   * True when the active manifest was signed with the bundled, untrusted
+   * DEVELOPMENT certificate — its leaf certificate's SHA-256 fingerprint equals
+   * that of the dev chain shipped in this package (ADR-0039). False for any
+   * other signer, or when the signing certificate cannot be read from an
+   * embedded manifest. Ingredient (parent) manifests are not considered; this
+   * says nothing about signature validity — see `validationStatusCodes`.
+   */
+  signedWithDevCertificate: boolean;
 }
 
 /**
@@ -55,5 +66,18 @@ export async function readManifest(input: string | Uint8Array): Promise<Manifest
       failure: (results?.failure ?? []).map((s) => s.code),
     },
     manifestLabels: Object.keys(store.manifests ?? {}),
+    signedWithDevCertificate: signedWithDevCertificate(bytes, mimeType, activeLabel),
   };
+}
+
+function signedWithDevCertificate(bytes: Buffer, mimeType: ImageMime, label: string): boolean {
+  const leaf = manifestSigningCertificate(bytes, mimeType, label);
+  if (leaf === null) {
+    return false;
+  }
+  try {
+    return certificateSha256(leaf) === devCertificateSha256();
+  } catch {
+    return false; // not a parseable X.509 certificate — certainly not the dev one
+  }
 }

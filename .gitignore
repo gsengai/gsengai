@@ -22,6 +22,8 @@ lib/
 
 # evidence store files / local databases
 *.db
+# ...except the committed 0.2.1-format store the upgrade-compatibility test opens
+!packages/core/test/fixtures/store-core-0.2.1.db
 *.db-wal
 *.db-shm
 *.sqlite

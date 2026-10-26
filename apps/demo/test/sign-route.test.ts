@@ -53,6 +53,9 @@ describe("POST /api/sign (image flow)", () => {
     // Dev-cert honesty: valid signature, untrusted credential — reported as-is.
     expect(result.manifest.validationStatusCodes.failure).toContain("signingCredential.untrusted");
     expect(result.manifest.activeLabel).toBe(result.record.manifest_ref);
+    // ...and detectable after the fact (ADR-0039): the record names the dev leaf.
+    expect(result.manifest.signedWithDevCertificate).toBe(true);
+    expect(result.record.signer_cert_sha256).toMatch(/^[0-9a-f]{64}$/u);
 
     expect(result.record.modality).toBe("image");
     expect(result.record.system_id).toBe("gsengai-demo/image-flow");

@@ -43,6 +43,7 @@ describe("POST /api/evidence (text flow)", () => {
         "marking_methods",
         "manifest_ref",
         "disclosure_context",
+        "signer_cert_sha256",
         "prev_hash",
         "record_hash",
       ].sort(),
@@ -54,6 +55,7 @@ describe("POST /api/evidence (text flow)", () => {
     expect(record.hash_version).toBe(1);
     expect(record.marking_methods).toEqual(["logging"]);
     expect(record.manifest_ref).toBeNull();
+    expect(record.signer_cert_sha256).toBeNull();
     expect(record.record_hash).toMatch(SHA256_HEX);
     // Seeded chain: the visitor's record links to a predecessor.
     expect(record.prev_hash).toMatch(SHA256_HEX);
