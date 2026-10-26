@@ -2,11 +2,16 @@
 
 All notable changes to this project are documented here. The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project aims to follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [0.3.1] — 2026-10-26
+
+Compatibility release: today's SDK majors, verified against the real SDK clients. No API changes.
+
+### Fixed
+
+- **`@gsengai/openai` installs next to `openai` 7.** The peer range was `^6.0.0`, so installing it next to `openai@7` (released 2026-07-27, whose only breaking change is requiring Node.js 22, which this project already requires) failed with a peer-dependency conflict. The peer range is now `^6.0.0 || ^7.0.0`.
 
 ### Changed
 
-- **`@gsengai/openai` supports `openai` 7.** The peer range was `^6.0.0`, so installing it next to `openai@7` (released 2026-07-27, whose only breaking change is requiring Node.js 22, which this project already requires) failed with a peer-dependency conflict. The peer range is now `^6.0.0 || ^7.0.0`.
 - **`@gsengai/anthropic` supports `@anthropic-ai/sdk` 1.x** (released 2026-10-21; API version `2026-10-21`). The open-ended peer range `>=0.39.0` is now `>=0.39.0 <2.0.0`, so a future 2.0 needs a deliberate compatibility check rather than being claimed automatically.
 - New compatibility tests run each wrapper against the real SDK client — a fake `fetch` serves recorded-shape JSON and streamed events, no network — covering chat completions and the Responses API (streaming and not, plus the `.withResponse()` helper), and `messages.create` and the `messages.stream()` helper. Verified against `openai` 6.49.0 and 7.45.0, `@anthropic-ai/sdk` 0.110.0 and 1.3.0, and `ai` 7.0.154.
 - CI: GitHub Actions move to their Node 24 majors (`actions/checkout` v7, `actions/setup-node` v7, `pnpm/action-setup` v6); the v4 actions targeted Node 20, which GitHub has deprecated. CI's c2patool pin moves from 0.26.70 to 0.27.22, the version users install today — the c2patool backend passes all signing tests against it.
