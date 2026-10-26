@@ -2,6 +2,18 @@
 
 All notable changes to this project are documented here. The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project aims to follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Breaking changes
+
+- **pnpm 10+ and Bun: allow `@contentauth/c2pa-node`'s install script.** `@gsengai/c2pa` now pins `@contentauth/c2pa-node` 0.9.10, which downloads its native binary for your platform when it installs. pnpm 10+ and Bun skip dependency install scripts unless the package is allowed (`pnpm approve-builds` or `onlyBuiltDependencies`; Bun: `trustedDependencies`). Without that, signing falls back to c2patool, or fails with install guidance if c2patool isn't on `PATH`. This now applies on Apple Silicon too, where 0.6.0's bundled binary worked without the script. npm and Yarn run install scripts by default. (ADR-0042)
+
+### Changed
+
+- **`@gsengai/c2pa` signs natively on macOS, Linux, and Windows.** `@contentauth/c2pa-node` 0.9.10 ships prebuilt binaries for macOS (Apple Silicon and Intel), Linux (x64 and arm64, glibc), and Windows (x64), so c2patool is no longer required on those platforms. It remains the automatic fallback wherever the native binary can't load, e.g. Alpine/musl. (ADR-0042)
+- Signed manifests stay equivalent across both backends: native signing disables the claim thumbnail that c2pa-rs 0.91 adds by default, as the c2patool backend already did. The offline settings (no OCSP, no remote-manifest fetching) were re-checked against the bundled c2pa-rs, and a settings key it no longer knows was removed.
+- CI runs the full suite on the native backend on Ubuntu and macOS, failing if it silently falls back, and forces the c2patool fallback over the C2PA tests on Ubuntu.
+
 ## [0.3.1] — 2026-10-26
 
 Compatibility release: today's SDK majors, verified against the real SDK clients. No API changes.

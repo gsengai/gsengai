@@ -133,6 +133,20 @@ describe("signImage — PNG/JPEG signing (PRD B1/B2)", () => {
     expect(summary?.activeLabel).toBe(result.manifestLabel);
   });
 
+  it("embeds no claim thumbnail on either backend — outputs stay equivalent (ADR-0035, ADR-0042)", async () => {
+    const signer = newSigner();
+    for (const [input, mimeType] of [
+      [makePng(), "image/png"],
+      [makeJpeg(), "image/jpeg"],
+    ] as const) {
+      const result = await signer.signImage({ input, model: "m" });
+      const active = await activeManifestOf(result.output as Buffer, mimeType);
+      expect(active).not.toBeNull();
+      expect(active?.thumbnail ?? null).toBeNull();
+      expect((active?.assertions ?? []).some((a) => a.label.includes("thumbnail"))).toBe(false);
+    }
+  });
+
   it("corrupt input throws regardless of failMode, and nothing is recorded", async () => {
     const garbage = Buffer.from("definitely not an image");
     for (const failMode of ["open", "strict"] as const) {

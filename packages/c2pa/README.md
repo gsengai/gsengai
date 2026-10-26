@@ -12,7 +12,7 @@ pnpm add @gsengai/c2pa @gsengai/core
 
 Requires Node ≥ 22.
 
-**Platform support:** works out of the box on macOS (Apple Silicon). On Linux, Windows, and Intel macs, install [c2patool](https://github.com/contentauth/c2pa-rs/tree/main/cli) once ([prebuilt binaries](https://github.com/contentauth/c2pa-rs/releases) or `cargo install c2patool`) and have it on `PATH` — the fallback backend is auto-detected and produces equivalent manifests. `GSENGAI_C2PATOOL_PATH` or the `c2patoolPath` option point at a specific binary; `GSENGAI_C2PA_BACKEND=native|c2patool` forces a backend. Details in [docs/production.md](https://github.com/gsengai/gsengai/blob/main/docs/production.md).
+**Platform support:** signing uses the native `@contentauth/c2pa-node` binary, which downloads a prebuilt build for macOS (Apple Silicon and Intel), Linux (x64 and arm64, glibc), and Windows (x64) when it installs. **With pnpm 10+ or Bun, allow its install script** (`pnpm approve-builds`, or `onlyBuiltDependencies`; Bun: `trustedDependencies`) — otherwise the download never runs and the native binary can't load. Where it can't load (scripts blocked, no network at install, or no prebuilt for the platform, e.g. Alpine/musl), signing falls back automatically to [c2patool](https://github.com/contentauth/c2pa-rs/tree/main/cli) on `PATH` ([prebuilt binaries](https://github.com/contentauth/c2pa-rs/releases) or `cargo install c2patool`), which produces equivalent manifests. `GSENGAI_C2PATOOL_PATH` or the `c2patoolPath` option point at a specific binary; `GSENGAI_C2PA_BACKEND=native|c2patool` forces a backend. Details in [docs/production.md](https://github.com/gsengai/gsengai/blob/main/docs/production.md).
 
 ## Usage
 

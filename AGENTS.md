@@ -15,7 +15,8 @@ Guidance for AI-assisted work in this repository — and a briefing for human co
 
 ## Sharp edges
 
-- **Never import `@contentauth/c2pa-node` directly** — anywhere, including tests. It loads its native binary lazily and only works on macOS arm64; all access goes through the backend resolver in `packages/c2pa/src/backend.ts` (native or c2patool fallback — ADR-0035). A direct import passes locally on a Mac and breaks Linux CI.
+- **Never import `@contentauth/c2pa-node` directly** — anywhere, including tests. It loads its native binary lazily, so a successful import proves nothing, and the binary can be missing or built for another platform (install script blocked, no prebuilt); all access goes through the backend resolver in `packages/c2pa/src/backend.ts`, which probes the native module and falls back to c2patool (ADR-0035, ADR-0042). A direct import bypasses that fallback.
+- **On every `@contentauth/c2pa-node` upgrade, re-check `packages/c2pa/src/settings.ts`** against the settings schema of the c2pa-rs version it bundles. c2pa-rs ignores unknown keys silently, and its defaults are not offline (`remote_manifest_fetch` defaults to `true`), so a renamed key quietly breaks the no-network guarantee. Also check that both backends still produce equivalent manifests (ADR-0042).
 - Keep the `VERSION` constant in `packages/c2pa/src/constants.ts` in step with the package version on release — it is recorded inside every signed manifest.
 - Bump `@gsengai/core` and `@gsengai/c2pa` together and publish core first: c2pa's dependency range on core is written from core's version at pack time (`RELEASING.md`).
 - Publishing is manual — see `RELEASING.md` (including the 24-hour tombstone rule for interrupted publishes). Do not attempt to automate publishing; the blockers are tracked in issue #2.
@@ -28,4 +29,4 @@ Guidance for AI-assisted work in this repository — and a briefing for human co
 - Architecture decisions: `DECISIONS.md` (append-only ADR log — supersede, don't rewrite).
 - What is and is not captured: `docs/capture-coverage.md`.
 - Production concerns (platform support, cert handling, store topology, failure modes): `docs/production.md`.
-- CI runs an ubuntu + macOS matrix so both C2PA signing backends stay covered — keep it that way.
+- CI runs the full suite on the native C2PA backend on Ubuntu and macOS (`GSENGAI_EXPECT_BACKEND` turns a silent fallback into a failure) and forces the c2patool fallback over the C2PA tests on Ubuntu, so both backends stay covered — keep it that way.

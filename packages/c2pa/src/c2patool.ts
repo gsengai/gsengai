@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: Apache-2.0
 // c2patool backend: signs and reads by invoking contentauth's standalone CLI
-// (c2pa-rs) in a subprocess — the cross-platform fallback for platforms where
-// the @contentauth/c2pa-node native binary cannot load (issue #1). Invocation
+// (c2pa-rs) in a subprocess — the fallback wherever the @contentauth/c2pa-node
+// native binary cannot load (issue #1, ADR-0042: script blocked, download
+// failed, or no prebuilt for the platform). Invocation
 // is execFile (no shell); assets pass through a private temp dir that is
 // always removed; signing credentials are passed as file paths so key material
 // is never copied.

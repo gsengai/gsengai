@@ -23,7 +23,7 @@
     "react-dom": "^19.0.0"
   },
   "devDependencies": {
-    "@contentauth/c2pa-node": "0.6.0",
+    "@contentauth/c2pa-node": "0.9.10",
     "@types/node": "^22.10.0",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.2.3",
