@@ -2,6 +2,12 @@
 
 All notable changes to this project are documented here. The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project aims to follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Security
+
+- Dependency updates for vulnerabilities reported by Dependabot and `pnpm audit` (5 critical, 20 high, 17 moderate, 2 low before; 1 low after). **No published package is affected**: they were in the private demo (Next.js 15.5.20 → 15.5.28, `sharp` 0.35.5, Next's pinned `postcss` raised to 8.5.32) and in the test tooling (vitest 3 → 4.1.12, which drops `tinypool`; `vite` 7.3.7; `zod` 4.6.7). The one transitive dependency that reaches users, `brace-expansion` under `@contentauth/c2pa-node`, already resolves to the fixed 1.1.21 on fresh installs, and only runs during that package's install-time unzip of its own download. The remaining low advisory (`esbuild` under `tsup`) concerns esbuild's development server on Windows, which this project does not use; it needs tsup 9, handled separately.
+
 ## [0.4.0] — 2026-10-26
 
 Native C2PA signing on macOS, Linux, and Windows; c2patool becomes the fallback.
