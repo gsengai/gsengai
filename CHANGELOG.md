@@ -2,12 +2,16 @@
 
 All notable changes to this project are documented here. The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project aims to follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [0.3.0] — 2026-10-26
 
 ### Breaking changes
 
 - **`@gsengai/c2pa`: the bundled development certificates are now an explicit opt-in.** `createImageSigner` no longer falls back to them when `certPath`/`keyPath` are missing, and no longer pairs your certificate or key file with a dev file when only one path is given. Pass both `certPath` and `keyPath`, or neither plus `devCertificates: true`. Every other combination throws at construction, pointing to `docs/CERTIFICATES.md`. The one-time warning now fires on the opt-in. Migration: add `devCertificates: true` where you relied on the default (tests, local demos), and nowhere in production. (ADR-0038)
 - **`@gsengai/core`: new evidence record field `signer_cert_sha256`** (`string | null`): the SHA-256 fingerprint of the leaf certificate that signed an image. `@gsengai/c2pa` sets it on every signing; text records leave it null. Existing stores upgrade in place when opened (one nullable column is added, no existing row is modified) and keep passing `verifyChain()`. No existing `record_hash` changes, because a null value is left out of the hashed body. JSONL exports include the field; CSV exports gain it as a new last column (the existing column order is unchanged). Code that builds `EvidenceRecord` objects or matches record keys or CSV columns exactly needs the new field. Do not downgrade `@gsengai/core` after records carry the field: earlier versions report a chain break at the first such record. (ADR-0039)
+
+### Security
+
+- `@gsengai/c2pa` before 0.3.0 signs with the bundled development key — whose private key is public — whenever `certPath`/`keyPath` are missing, with only a one-time stderr warning; anyone can produce a signature with that key. Upgrade to 0.3.0, where that requires the explicit `devCertificates: true`. Versions before 0.3.0 are deprecated on npm for this reason. To find outputs signed with the dev certificate, see `docs/CERTIFICATES.md` ("Finding dev-signed outputs").
 
 ### Added
 
