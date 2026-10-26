@@ -8,7 +8,7 @@ import type { ManifestSummary } from "@gsengai/c2pa";
 // contentcredentials.org is expected, not a broken demo.
 import type { ChainVerification, EvidenceRecord } from "@gsengai/core";
 import { useId, useState } from "react";
-import { DEV_CERT_CAVEAT, PRIVACY_IMAGE_FLOW, VERIFY_URL } from "../lib/copy";
+import { DEV_CERT_CAVEAT, devCertificateNote, PRIVACY_IMAGE_FLOW, VERIFY_URL } from "../lib/copy";
 import { ChainBadge, EvidenceRecordView } from "./EvidenceRecordView";
 
 interface SignResult {
@@ -97,6 +97,9 @@ export function ImageFlow() {
                   (the expected dev-cert outcome)
                 </>
               )}
+            </li>
+            <li>
+              Signing certificate: {devCertificateNote(result.manifest.signedWithDevCertificate)}
             </li>
             <li>
               Ingredients: {result.manifest.ingredientCount}

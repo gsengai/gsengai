@@ -11,7 +11,7 @@ All notable changes to this project are documented here. The format is based on 
 
 ### Added
 
-- `readManifest` reports `signedWithDevCertificate`: true when the active manifest was signed with the bundled development certificate, matched by certificate fingerprint. (ADR-0039)
+- `readManifest` reports `signedWithDevCertificate`, matched by certificate fingerprint: `true` when the active manifest was signed with the bundled development certificate, `false` when it was signed with another certificate, and `null` when the signing certificate cannot be determined (treat as unknown, not as "not dev-signed"). The certificate is read from the asset's single embedded manifest store and must match the signer the validator reported (serial number and subject organization), so the flag always describes the signature the validator checked. (ADR-0039, ADR-0040)
 - Secret-scanner configuration: `.gitleaks.toml` and `.github/secret_scanning.yml` allowlist exactly the public dev key file, and a test fails if any other tracked file contains a PEM private key. (ADR-0037)
 
 ### Documentation

@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: Apache-2.0
+import { X509Certificate } from "node:crypto";
 import { readFile } from "node:fs/promises";
-import { resolveBackend } from "./backend";
-import { certificateSha256, devCertificateSha256 } from "./cert";
+import { resolveBackend, type SignatureInfoJson } from "./backend";
+import { certificateSha256, devCertificateSha256, isReportedSigner } from "./cert";
 import { manifestSigningCertificate } from "./jumbf";
 import { detectImageMime, type ImageMime } from "./mime";
 
@@ -29,14 +30,21 @@ export interface ManifestSummary {
   /** All manifest labels in the store — the provenance chain, active first is not guaranteed. */
   manifestLabels: string[];
   /**
-   * True when the active manifest was signed with the bundled, untrusted
-   * DEVELOPMENT certificate — its leaf certificate's SHA-256 fingerprint equals
-   * that of the dev chain shipped in this package (ADR-0039). False for any
-   * other signer, or when the signing certificate cannot be read from an
-   * embedded manifest. Ingredient (parent) manifests are not considered; this
-   * says nothing about signature validity — see `validationStatusCodes`.
+   * Whether the active manifest was signed with the bundled, untrusted
+   * DEVELOPMENT certificate, matched by the leaf certificate's SHA-256
+   * fingerprint against the dev chain shipped in this package (ADR-0039):
+   *
+   * - `true`: the signing certificate is the dev leaf.
+   * - `false`: the signing certificate was determined and is not the dev leaf.
+   * - `null`: the signing certificate could not be determined — no single
+   *   unambiguous embedded store, an unreadable signature, or a certificate
+   *   that does not match the signer the validator reported (ADR-0040). Treat
+   *   null as unknown, never as "not dev-signed".
+   *
+   * Ingredient (parent) manifests are not considered; this says nothing about
+   * signature validity — see `validationStatusCodes`.
    */
-  signedWithDevCertificate: boolean;
+  signedWithDevCertificate: boolean | null;
 }
 
 /**
@@ -66,18 +74,41 @@ export async function readManifest(input: string | Uint8Array): Promise<Manifest
       failure: (results?.failure ?? []).map((s) => s.code),
     },
     manifestLabels: Object.keys(store.manifests ?? {}),
-    signedWithDevCertificate: signedWithDevCertificate(bytes, mimeType, activeLabel),
+    signedWithDevCertificate: signedWithDevCertificate(
+      bytes,
+      mimeType,
+      activeLabel,
+      active?.signature_info,
+    ),
   };
 }
 
-function signedWithDevCertificate(bytes: Buffer, mimeType: ImageMime, label: string): boolean {
+/**
+ * Tri-state dev-cert check (ADR-0040). The certificate is read from the
+ * embedded store and must be the signer the backend reported for the
+ * signature it validated (serial + organization) before its fingerprint is
+ * trusted to say anything; every failure to establish that is null.
+ */
+function signedWithDevCertificate(
+  bytes: Buffer,
+  mimeType: ImageMime,
+  label: string,
+  reported: SignatureInfoJson | null | undefined,
+): boolean | null {
+  if (!reported) {
+    return null; // the backend reports no signer for the signature it validated
+  }
   const leaf = manifestSigningCertificate(bytes, mimeType, label);
   if (leaf === null) {
-    return false;
+    return null;
   }
   try {
-    return certificateSha256(leaf) === devCertificateSha256();
+    const certificate = new X509Certificate(leaf);
+    if (!isReportedSigner(certificate, reported)) {
+      return null; // not provably the signature the backend validated
+    }
+    return certificateSha256(certificate.raw) === devCertificateSha256();
   } catch {
-    return false; // not a parseable X.509 certificate — certainly not the dev one
+    return null; // unparseable certificate, or the bundled dev chain is unreadable
   }
 }

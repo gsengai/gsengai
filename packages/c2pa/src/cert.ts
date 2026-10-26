@@ -6,6 +6,7 @@
 import { X509Certificate } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
+import type { SignatureInfoJson } from "./backend";
 
 export const DEV_CERT_PATH = fileURLToPath(
   new URL("../dev-certs/dev-cert-chain.pem", import.meta.url),
@@ -43,4 +44,25 @@ export function devCertificateSha256(): string {
     "the bundled dev certificate chain",
   );
   return devCertificateSha256Cache;
+}
+
+/**
+ * Whether `certificate` is the signer the backend reported for the signature
+ * it validated (ADR-0040): same serial and same organization, compared the way
+ * c2pa-rs produces them — serial in decimal, organization as the last O of
+ * the certificate's subject (raw value, not the RFC 2253-escaped DN string).
+ * A report without either field matches nothing.
+ */
+export function isReportedSigner(
+  certificate: X509Certificate,
+  reported: SignatureInfoJson | null | undefined,
+): boolean {
+  const serial = reported?.cert_serial_number;
+  const organization = reported?.issuer;
+  if (typeof serial !== "string" || typeof organization !== "string") {
+    return false;
+  }
+  const subjectO: unknown = certificate.toLegacyObject().subject?.O;
+  const lastO = Array.isArray(subjectO) ? subjectO.at(-1) : subjectO;
+  return BigInt(`0x${certificate.serialNumber}`).toString() === serial && lastO === organization;
 }

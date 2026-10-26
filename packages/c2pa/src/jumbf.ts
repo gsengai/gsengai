@@ -1,17 +1,29 @@
 // SPDX-License-Identifier: Apache-2.0
 // Extracts the signing (leaf) certificate of a manifest from the embedded C2PA
-// manifest store (ADR-0039). Neither backend exposes the certificate itself —
-// the c2pa-rs manifest JSON carries only issuer/common name/serial — so the
-// store is walked directly: container (PNG caBX chunk or JPEG APP11 JUMBF
-// segments) → JUMBF superbox "c2pa" → manifest superbox → "c2pa.signature" →
-// COSE_Sign1 → x5chain[0]. Read-only, offline, and defensive: any structure it
-// does not understand yields null rather than a guess.
+// manifest store (ADR-0039, ADR-0040). Neither backend exposes the certificate
+// itself — the c2pa-rs manifest JSON carries only organization, common name,
+// and serial — so the store is walked directly: container (PNG caBX chunk or
+// JPEG APP11 JUMBF segments) → the one manifest store → the one manifest with
+// the requested label → its one "c2pa.signature" box → COSE_Sign1 → x5chain[0].
+//
+// It must read the signature the backend validated, so it is strict wherever
+// a lenient reading could pick a different signature: more than one embedded
+// store (c2pa-rs rejects those too), a duplicated label, boxes that do not
+// exactly tile their parent, out-of-order JPEG segments, duplicate CBOR map
+// keys, trailing bytes, or x5chain in both COSE headers. Every such input
+// yields null — never a guess. read.ts then cross-checks the certificate
+// against the signer the backend reported.
 import type { ImageMime } from "./mime";
 
 const PNG_SIGNATURE_LENGTH = 8;
 const MAX_CBOR_DEPTH = 32;
 const COSE_SIGN1_TAG = 18;
 const COSE_HEADER_X5CHAIN = 33;
+/** Manifest-store JUMBF type UUID prefix ("c2pa"), the bytes c2pa-rs keys on. */
+const C2PA_STORE_TYPE = Buffer.from("c2pa", "latin1");
+
+/** Thrown for any structure this reader refuses; caught once, at the entry point. */
+class Unreadable extends Error {}
 
 interface JumbfBox {
   type: string;
@@ -19,109 +31,191 @@ interface JumbfBox {
   data: Buffer;
 }
 
-/** Iterate ISO BMFF-style boxes (LBox, TBox, optional XLBox) laid end to end. */
-function* boxes(data: Buffer): Generator<JumbfBox> {
+interface Superbox {
+  label: string | null;
+  typeUuid: Buffer;
+  children: JumbfBox[];
+}
+
+/** ISO BMFF-style boxes (LBox, TBox, optional XLBox) that must tile `data` exactly. */
+function boxes(data: Buffer): JumbfBox[] {
+  const out: JumbfBox[] = [];
   let pos = 0;
-  while (pos + 8 <= data.length) {
+  while (pos < data.length) {
+    if (pos + 8 > data.length) {
+      throw new Unreadable("truncated box header");
+    }
     let size = data.readUInt32BE(pos);
-    const type = data.toString("latin1", pos + 4, pos + 8);
     let header = 8;
     if (size === 1) {
       if (pos + 16 > data.length) {
-        return;
+        throw new Unreadable("truncated 64-bit box length");
       }
-      size = Number(data.readBigUInt64BE(pos + 8));
+      const extended = data.readBigUInt64BE(pos + 8);
+      if (extended > BigInt(data.length - pos)) {
+        throw new Unreadable("64-bit box length past the end of the data");
+      }
+      size = Number(extended);
       header = 16;
     } else if (size === 0) {
-      size = data.length - pos;
+      size = data.length - pos; // "extends to the end"
     }
     if (size < header || pos + size > data.length) {
-      return;
+      throw new Unreadable("box length out of range");
     }
-    yield { type, data: data.subarray(pos + header, pos + size) };
+    out.push({
+      type: data.toString("latin1", pos + 4, pos + 8),
+      data: data.subarray(pos + header, pos + size),
+    });
     pos += size;
   }
+  return out;
 }
 
-/** A JUMBF superbox's label (from its jumd description box) and its content boxes. */
-function superbox(box: JumbfBox): { label: string | null; children: JumbfBox[] } | null {
+/** The one box that exactly fills `data`. */
+function onlyBox(data: Buffer): JumbfBox {
+  const all = boxes(data);
+  if (all.length !== 1 || all[0] === undefined) {
+    throw new Unreadable("expected exactly one box");
+  }
+  return all[0];
+}
+
+/** A JUMBF superbox's description (label, type UUID) and content boxes; null for non-superboxes. */
+function superbox(box: JumbfBox): Superbox | null {
   if (box.type !== "jumb") {
     return null;
   }
-  const [description, ...children] = [...boxes(box.data)];
+  const [description, ...children] = boxes(box.data);
   if (description?.type !== "jumd" || description.data.length < 17) {
-    return null;
+    throw new Unreadable("superbox without a description box");
   }
   const toggles = description.data[16] ?? 0;
   let label: string | null = null;
   if ((toggles & 0x02) !== 0) {
     const end = description.data.indexOf(0, 17);
-    label = description.data.toString("utf8", 17, end === -1 ? undefined : end);
+    if (end === -1) {
+      throw new Unreadable("unterminated superbox label");
+    }
+    label = description.data.toString("utf8", 17, end);
   }
-  return { label, children };
+  return { label, typeUuid: description.data.subarray(0, 16), children };
 }
 
-function pngManifestStore(bytes: Buffer): Buffer | null {
+/** The single item of `items` matching `predicate`; zero or several are refused. */
+function exactlyOne<T>(items: T[], predicate: (item: T) => boolean, what: string): T {
+  const matches = items.filter(predicate);
+  if (matches.length !== 1 || matches[0] === undefined) {
+    throw new Unreadable(`expected exactly one ${what}, found ${matches.length}`);
+  }
+  return matches[0];
+}
+
+/** Every caBX chunk up to IEND. Chunk CRCs are not checked (c2pa-rs does not either). */
+function pngStores(bytes: Buffer): Buffer[] {
+  const stores: Buffer[] = [];
   let pos = PNG_SIGNATURE_LENGTH;
-  while (pos + 12 <= bytes.length) {
+  while (pos < bytes.length) {
+    if (pos + 12 > bytes.length) {
+      throw new Unreadable("truncated PNG chunk");
+    }
     const length = bytes.readUInt32BE(pos);
     const type = bytes.toString("latin1", pos + 4, pos + 8);
+    if (pos + 12 + length > bytes.length) {
+      throw new Unreadable("PNG chunk length past the end of the data");
+    }
     if (type === "caBX") {
-      return bytes.subarray(pos + 8, Math.min(pos + 8 + length, bytes.length));
+      stores.push(bytes.subarray(pos + 8, pos + 8 + length));
     }
     if (type === "IEND") {
-      return null;
+      break;
     }
     pos += 12 + length;
   }
-  return null;
+  return stores;
 }
 
 /**
- * JPEG XT box reassembly: each APP11 segment carries CI "JP", box instance En,
- * sequence Z, then box bytes; continuation segments (Z > 1) repeat the box's
- * LBox/TBox (and XLBox), which are dropped when concatenating.
+ * JPEG XT boxes from APP11 segments, reassembled the way c2pa-rs does: per box
+ * instance En, a Z = 1 segment starts the box and continuations follow in file
+ * order with Z = previous + 1, each repeating the box header (dropped here).
+ * Repeated, skipped, or reordered segments are refused rather than repaired.
  */
-function jpegManifestStore(bytes: Buffer): Buffer | null {
-  const instances = new Map<number, { z: number; payload: Buffer }[]>();
+function jpegBoxes(bytes: Buffer): Buffer[] {
+  const open = new Map<number, { z: number; header: Buffer; parts: Buffer[] }>();
   let pos = 2; // after SOI
   while (pos + 4 <= bytes.length && bytes[pos] === 0xff) {
     const marker = bytes[pos + 1] ?? 0;
     if (marker === 0xd9 || marker === 0xda) {
-      break; // EOI / start of scan: metadata segments are all behind us
+      break; // EOI / start of scan: every metadata segment is behind us
     }
-    if (marker === 0x01 || (marker >= 0xd0 && marker <= 0xd8) || marker === 0xff) {
-      pos += marker === 0xff ? 1 : 2;
+    if (marker === 0xff) {
+      pos += 1; // fill byte
+      continue;
+    }
+    if (marker === 0x01 || (marker >= 0xd0 && marker <= 0xd8)) {
+      pos += 2; // standalone marker, no length
       continue;
     }
     const length = bytes.readUInt16BE(pos + 2);
-    const segment = bytes.subarray(pos + 4, Math.min(pos + 2 + length, bytes.length));
-    if (marker === 0xeb && segment.length >= 8 && segment.toString("latin1", 0, 2) === "JP") {
+    if (length < 2 || pos + 2 + length > bytes.length) {
+      throw new Unreadable("JPEG segment length past the end of the data");
+    }
+    const segment = bytes.subarray(pos + 4, pos + 2 + length);
+    // c2pa-rs ignores APP11 segments of 16 bytes or less; so does this reader.
+    if (marker === 0xeb && segment.length > 16 && segment.toString("latin1", 0, 2) === "JP") {
       const en = segment.readUInt16BE(2);
       const z = segment.readUInt32BE(4);
-      const packets = instances.get(en) ?? [];
-      packets.push({ z, payload: segment.subarray(8) });
-      instances.set(en, packets);
+      const payload = segment.subarray(8);
+      const current = open.get(en);
+      if (z === 1) {
+        if (current !== undefined) {
+          throw new Unreadable("two JPEG XT boxes share one instance number");
+        }
+        const header = payload.subarray(0, payload.readUInt32BE(0) === 1 ? 16 : 8);
+        open.set(en, { z, header, parts: [payload] });
+      } else {
+        if (current === undefined || z !== current.z + 1) {
+          throw new Unreadable("out-of-order JPEG XT continuation segment");
+        }
+        if (!payload.subarray(0, current.header.length).equals(current.header)) {
+          throw new Unreadable("JPEG XT continuation repeats a different box header");
+        }
+        current.parts.push(payload.subarray(current.header.length));
+        current.z = z;
+      }
     }
     pos += 2 + length;
   }
-  for (const packets of instances.values()) {
-    packets.sort((a, b) => a.z - b.z);
-    const [first, ...rest] = packets;
-    if (first === undefined || first.payload.length < 8) {
-      continue;
-    }
-    const headerLength = first.payload.readUInt32BE(0) === 1 ? 16 : 8;
-    const store = Buffer.concat([
-      first.payload,
-      ...rest.map((packet) => packet.payload.subarray(headerLength)),
-    ]);
-    const [box] = boxes(store);
-    if (box !== undefined && superbox(box)?.label === "c2pa") {
-      return store;
-    }
+  return [...open.values()].map((box) => Buffer.concat(box.parts));
+}
+
+/**
+ * The one embedded manifest store. JPEG XT boxes count as stores when c2pa-rs
+ * would take them for one (description type "c2pa…") or when they are labelled
+ * "c2pa"; other JUMBF uses of APP11 are ignored, as c2pa-rs ignores them.
+ */
+function manifestStore(bytes: Buffer, mimeType: ImageMime): Superbox {
+  let candidates: Buffer[];
+  if (mimeType === "image/png") {
+    candidates = pngStores(bytes);
+  } else {
+    candidates = jpegBoxes(bytes).filter((box) => {
+      if (box.subarray(16, 20).equals(C2PA_STORE_TYPE)) {
+        return true;
+      }
+      try {
+        return superbox(onlyBox(box))?.label === "c2pa";
+      } catch {
+        return false; // not a parseable JUMBF box at all, and not typed as C2PA
+      }
+    });
   }
-  return null;
+  const store = superbox(onlyBox(exactlyOne(candidates, () => true, "embedded manifest store")));
+  if (store?.label !== "c2pa") {
+    throw new Unreadable("manifest store is not labelled c2pa");
+  }
+  return store;
 }
 
 type Cbor =
@@ -136,41 +230,49 @@ type Cbor =
   | Map<Cbor, Cbor>
   | { tag: number; value: Cbor };
 
-/** Minimal CBOR (RFC 8949) decoder for COSE headers; throws on anything malformed. */
+const ARGUMENT_WIDTH: Record<number, number> = { 24: 1, 25: 2, 26: 4, 27: 8 };
+
+/**
+ * Minimal strict CBOR (RFC 8949) decoder for COSE structures: one complete
+ * item, no trailing bytes, no duplicate map keys, bounded nesting. Counts are
+ * never preallocated, so a huge declared count costs at most one pass over the
+ * actual bytes before it runs out of data.
+ */
 function decodeCbor(data: Buffer): Cbor {
   let pos = 0;
   const need = (n: number): void => {
     if (pos + n > data.length) {
-      throw new RangeError("truncated CBOR");
+      throw new Unreadable("truncated CBOR");
     }
-  };
-  const argument = (info: number): number | null => {
-    if (info < 24) {
-      return info;
-    }
-    const width = { 24: 1, 25: 2, 26: 4, 27: 8 }[info];
-    if (width === undefined) {
-      if (info === 31) {
-        return null; // indefinite length
-      }
-      throw new RangeError("reserved CBOR additional info");
-    }
-    need(width);
-    const value = width === 8 ? Number(data.readBigUInt64BE(pos)) : data.readUIntBE(pos, width);
-    pos += width;
-    return value;
   };
   /** Consumes the "break" stop code that ends an indefinite-length item. */
   const isBreak = (): boolean => {
+    need(1);
     if (data[pos] !== 0xff) {
       return false;
     }
     pos += 1;
     return true;
   };
+  const argument = (info: number, indefiniteAllowed: boolean): number | null => {
+    if (info < 24) {
+      return info;
+    }
+    if (info === 31 && indefiniteAllowed) {
+      return null;
+    }
+    const width = ARGUMENT_WIDTH[info];
+    if (width === undefined) {
+      throw new Unreadable("invalid CBOR additional information");
+    }
+    need(width);
+    const value = width === 8 ? Number(data.readBigUInt64BE(pos)) : data.readUIntBE(pos, width);
+    pos += width;
+    return value;
+  };
   const item = (depth: number): Cbor => {
     if (depth > MAX_CBOR_DEPTH) {
-      throw new RangeError("CBOR nested too deeply");
+      throw new Unreadable("CBOR nested past the depth limit");
     }
     need(1);
     const initial = data[pos++] ?? 0;
@@ -183,17 +285,20 @@ function decodeCbor(data: Buffer): Cbor {
       if (info === 22) {
         return null;
       }
-      const width = { 24: 1, 25: 2, 26: 4, 27: 8 }[info] ?? 0;
+      if (info === 31) {
+        throw new Unreadable("unexpected CBOR break");
+      }
+      const width = ARGUMENT_WIDTH[info] ?? 0;
       need(width);
-      pos += width; // simple values and floats carry nothing COSE headers need here
+      pos += width; // other simple values and floats: nothing COSE headers need here
       return undefined;
     }
-    const n = argument(info);
+    const n = argument(info, major >= 2 && major <= 5);
     switch (major) {
       case 0:
-        return n ?? 0;
+        return n as number;
       case 1:
-        return -1 - (n ?? 0);
+        return -1 - (n as number);
       case 2:
       case 3: {
         let bytes: Buffer;
@@ -206,7 +311,7 @@ function decodeCbor(data: Buffer): Cbor {
             } else if (Buffer.isBuffer(chunk)) {
               chunks.push(chunk);
             } else {
-              throw new RangeError("malformed indefinite-length CBOR string");
+              throw new Unreadable("malformed indefinite-length CBOR string");
             }
           }
           bytes = Buffer.concat(chunks);
@@ -226,50 +331,69 @@ function decodeCbor(data: Buffer): Cbor {
       }
       case 5: {
         const map = new Map<Cbor, Cbor>();
-        while (n === null ? !isBreak() : map.size < n) {
-          map.set(item(depth + 1), item(depth + 1));
+        let entries = 0;
+        while (n === null ? !isBreak() : entries < n) {
+          const key = item(depth + 1);
+          if (map.has(key)) {
+            throw new Unreadable("duplicate CBOR map key");
+          }
+          map.set(key, item(depth + 1));
+          entries += 1;
         }
         return map;
       }
       default:
-        return { tag: n ?? 0, value: item(depth + 1) };
+        return { tag: n as number, value: item(depth + 1) };
     }
   };
-  return item(0);
+  const value = item(0);
+  if (pos !== data.length) {
+    throw new Unreadable("trailing bytes after CBOR item");
+  }
+  return value;
 }
 
-/** x5chain[0] from a COSE_Sign1 (tagged or untagged): protected header first, then unprotected. */
-function coseLeafCertificate(cose: Cbor): Buffer | null {
-  const sign1 =
-    cose !== null && typeof cose === "object" && "tag" in cose && cose.tag === COSE_SIGN1_TAG
-      ? cose.value
-      : cose;
+function isTagged(value: Cbor): value is { tag: number; value: Cbor } {
+  return value !== null && typeof value === "object" && "tag" in value;
+}
+
+/** x5chain[0] from a COSE_Sign1 (tagged or untagged); x5chain must sit in exactly one header. */
+function coseLeafCertificate(cose: Cbor): Buffer {
+  let sign1 = cose;
+  if (isTagged(cose)) {
+    if (cose.tag !== COSE_SIGN1_TAG) {
+      throw new Unreadable("not a COSE_Sign1");
+    }
+    sign1 = cose.value;
+  }
   if (!Array.isArray(sign1) || sign1.length !== 4) {
-    return null;
+    throw new Unreadable("not a COSE_Sign1");
   }
   const [protectedBytes, unprotected] = sign1;
-  const headers: Cbor[] = [
-    Buffer.isBuffer(protectedBytes) && protectedBytes.length > 0
-      ? decodeCbor(protectedBytes)
-      : null,
-    unprotected,
-  ];
-  for (const header of headers) {
-    if (header instanceof Map) {
-      const x5chain = header.get(COSE_HEADER_X5CHAIN);
-      const leaf = Array.isArray(x5chain) ? x5chain[0] : x5chain;
-      if (Buffer.isBuffer(leaf)) {
-        return leaf;
-      }
-    }
+  if (!Buffer.isBuffer(protectedBytes) || !(unprotected instanceof Map)) {
+    throw new Unreadable("malformed COSE headers");
   }
-  return null;
+  const protectedHeader = protectedBytes.length === 0 ? new Map() : decodeCbor(protectedBytes);
+  if (!(protectedHeader instanceof Map)) {
+    throw new Unreadable("malformed COSE protected header");
+  }
+  const x5chain = exactlyOne(
+    [protectedHeader, unprotected].filter((header) => header.has(COSE_HEADER_X5CHAIN)),
+    () => true,
+    "COSE header carrying x5chain",
+  ).get(COSE_HEADER_X5CHAIN);
+  const leaf = Array.isArray(x5chain) ? x5chain[0] : x5chain;
+  if (!Buffer.isBuffer(leaf) || leaf.length === 0) {
+    throw new Unreadable("x5chain carries no leaf certificate");
+  }
+  return leaf;
 }
 
 /**
  * DER bytes of the leaf certificate that signed the manifest labelled
- * `manifestLabel`, or null when the asset carries no embedded store, the
- * manifest is absent, or its signature box cannot be parsed.
+ * `manifestLabel`, or null when that cannot be determined unambiguously: no
+ * or several embedded stores, a missing or duplicated manifest or signature
+ * box, or any structure this reader refuses.
  */
 export function manifestSigningCertificate(
   bytes: Buffer,
@@ -277,21 +401,20 @@ export function manifestSigningCertificate(
   manifestLabel: string,
 ): Buffer | null {
   try {
-    const store = mimeType === "image/png" ? pngManifestStore(bytes) : jpegManifestStore(bytes);
-    const [storeBox] = store === null ? [] : boxes(store);
-    const manifests = storeBox === undefined ? null : superbox(storeBox);
-    if (manifests?.label !== "c2pa") {
-      return null;
-    }
-    const manifest = manifests.children
-      .map(superbox)
-      .find((candidate) => candidate?.label === manifestLabel);
-    const signatureBox = manifest?.children
-      .map(superbox)
-      .find((candidate) => candidate?.label === "c2pa.signature");
-    const cbor = signatureBox?.children.find((child) => child.type === "cbor");
-    return cbor === undefined ? null : coseLeafCertificate(decodeCbor(cbor.data));
+    const store = manifestStore(bytes, mimeType);
+    const manifests = store.children.map(superbox);
+    const manifest = exactlyOne(manifests, (m) => m?.label === manifestLabel, "manifest");
+    const parts = (manifest as Superbox).children.map(superbox);
+    const signature = exactlyOne(parts, (p) => p?.label === "c2pa.signature", "signature box");
+    const cbor = exactlyOne(
+      (signature as Superbox).children,
+      (child) => child.type === "cbor",
+      "CBOR signature payload",
+    );
+    return coseLeafCertificate(decodeCbor(cbor.data));
   } catch {
+    // Unreadable, or a Buffer bounds error on input this reader did not anticipate:
+    // either way the certificate cannot be determined, and readManifest must not throw.
     return null;
   }
 }

@@ -8,7 +8,7 @@ import { ChainBadge, EvidenceRecordView } from "../components/EvidenceRecordView
 import { ImageFlow } from "../components/ImageFlow";
 import { LimitsBlock } from "../components/LimitsBlock";
 import { TextFlow } from "../components/TextFlow";
-import { DEV_CERT_CAVEAT, S9_LIMIT_ITEMS } from "../lib/copy";
+import { DEV_CERT_CAVEAT, devCertificateNote, S9_LIMIT_ITEMS } from "../lib/copy";
 
 function escapeHtml(text: string): string {
   return text
@@ -40,6 +40,15 @@ describe("render/a11y smoke (both flows)", () => {
     expect(html).toContain("Sign with C2PA");
     // ADR-0030: the caveat is part of the initial view — no result needed.
     expect(html).toContain(escapeHtml(DEV_CERT_CAVEAT));
+  });
+
+  it("the dev-cert note distinguishes all three readManifest states; null never reads as a no", () => {
+    const notes = [true, false, null].map(devCertificateNote);
+    expect(new Set(notes).size).toBe(3);
+    expect(devCertificateNote(true)).toContain("bundled development certificate");
+    expect(devCertificateNote(false)).toMatch(/^not /u);
+    expect(devCertificateNote(null)).toMatch(/could not be determined/u);
+    expect(devCertificateNote(null)).not.toMatch(/^not /u);
   });
 
   it("ChainBadge announces its outcome via role=status", () => {

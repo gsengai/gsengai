@@ -13,7 +13,8 @@ function crc32(buf: Buffer): number {
   return ~c >>> 0;
 }
 
-function chunk(type: string, data: Buffer): Buffer {
+/** One PNG chunk (length, type, data, CRC). */
+export function chunk(type: string, data: Buffer): Buffer {
   const len = Buffer.alloc(4);
   len.writeUInt32BE(data.length);
   const body = Buffer.concat([Buffer.from(type, "ascii"), data]);

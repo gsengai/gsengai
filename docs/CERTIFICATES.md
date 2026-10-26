@@ -70,11 +70,22 @@ same fingerprint in upper case with colons.) The CSV export (`exportCsv`, or
 column. Records appended before `signer_cert_sha256` existed carry null and
 cannot be classified from the store alone.
 
-For a single asset, `readManifest` reports `signedWithDevCertificate: true`
-when the active manifest was signed with the bundled dev certificate, matched
+For a single asset, `readManifest` reports `signedWithDevCertificate`, matched
 by leaf-certificate fingerprint against the chain shipped with the installed
-package. It looks at the active manifest only, not at parent ingredients, and
-says nothing about signature validity (see `validationStatusCodes` for that).
+package. It has three values:
+
+- `true`: the active manifest was signed with the bundled dev certificate.
+- `false`: the signing certificate was determined, and it is not the dev
+  certificate.
+- `null`: the signing certificate could not be determined. **Treat `null` as
+  unknown, never as "not dev-signed".** It is null when the asset does not
+  carry exactly one embedded manifest store, when the signature cannot be read
+  unambiguously, or when the certificate read from the asset is not the signer
+  the validator reported (same serial number and subject organization) — the
+  flag only ever describes the signature the validator actually checked.
+
+It looks at the active manifest only, not at parent ingredients, and says
+nothing about signature validity (see `validationStatusCodes` for that).
 
 ## The production path
 

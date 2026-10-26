@@ -13,7 +13,9 @@ import { fileURLToPath } from "node:url";
 import { createImageSigner, readManifest } from "@gsengai/c2pa";
 import { createEvidenceStore, type EvidenceStore } from "@gsengai/core";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+import { resolveBackend } from "../src/backend";
 import { manifestSigningCertificate } from "../src/jumbf";
+import { generateChain, jpegApp11, pngChunks } from "./c2pa-builders";
 import { makeJpeg, makePng } from "./fixtures";
 
 const DEV_CERT_FILE = fileURLToPath(new URL("../dev-certs/dev-cert-chain.pem", import.meta.url));
@@ -143,6 +145,56 @@ describe("readManifest — signedWithDevCertificate (ADR-0039)", () => {
       expect(source.includes(DEV_LEAF_SHA256), file).toBe(false);
       expect(source.includes(DEV_LEAF_SHA256.match(/../gu)?.join(":") ?? ""), file).toBe(false);
     }
+  });
+});
+
+describe("readManifest — bound to the signer the validator reported (ADR-0040), real backends", () => {
+  it("compares the signer's subject organization, which c2pa-rs reports as `issuer`", async () => {
+    // Subject O differs from the issuer's O, repeats, and contains a comma:
+    // comparing against the issuer DN or the escaped DN string would yield null.
+    const odd = generateChain(join(otherDir, "odd"), {
+      root: "/C=US/O=Root Issuer Org/CN=gsengai test root - NOT TRUSTED",
+      leaf: "/C=US/O=Acme, Inc./O=Second Signer Org/CN=gsengai test signer - NOT TRUSTED",
+    });
+    const signed = await createImageSigner({
+      store,
+      systemId: "s",
+      certPath: odd.certPath,
+      keyPath: odd.keyPath,
+    }).signImage({ input: makePng(), model: "m" });
+
+    const backend = await resolveBackend();
+    const validated = await backend.validateStore(signed.output as Buffer, "image/png");
+    expect(validated?.manifests?.[signed.manifestLabel]?.signature_info).toMatchObject({
+      issuer: "Second Signer Org",
+      cert_serial_number: BigInt(`0x${odd.leaf.serialNumber}`).toString(),
+    });
+    // Determined (false), not unknown (null).
+    expect((await readManifest(signed.output as Buffer))?.signedWithDevCertificate).toBe(false);
+  });
+
+  it("both backends refuse an asset carrying two manifest stores, before any flag is computed", async () => {
+    const dev = devSigner();
+    const other = otherSigner();
+    const pngA = (await dev.signImage({ input: makePng(), model: "m" })).output as Buffer;
+    const pngB = (await other.signImage({ input: makePng(), model: "m" })).output as Buffer;
+    const secondStore = pngChunks(pngB).find((c) => c.type === "caBX")?.raw as Buffer;
+    const twoPng = Buffer.concat([
+      pngA.subarray(0, 8),
+      ...pngChunks(pngA).flatMap((c) => (c.type === "caBX" ? [c.raw, secondStore] : [c.raw])),
+    ]);
+    await expect(readManifest(twoPng)).rejects.toThrow(/more than one manifest store/u);
+
+    const jpegA = (await dev.signImage({ input: makeJpeg(), model: "m" })).output as Buffer;
+    const jpegB = (await other.signImage({ input: makeJpeg(), model: "m" })).output as Buffer;
+    const { end } = jpegApp11(jpegA);
+    const renumbered = jpegApp11(jpegB).segments.map((segment) => {
+      const copy = Buffer.from(segment);
+      copy.writeUInt16BE(copy.readUInt16BE(6) + 1, 6); // a distinct JPEG XT box instance (En)
+      return copy;
+    });
+    const twoJpeg = Buffer.concat([jpegA.subarray(0, end), ...renumbered, jpegA.subarray(end)]);
+    await expect(readManifest(twoJpeg)).rejects.toThrow(/more than one manifest store/u);
   });
 });
 
