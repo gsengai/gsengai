@@ -34,7 +34,7 @@ The evidence store is tamper-evident: `verifyChain()` detects casual and acciden
 
 ## 7. Upgrade every writer and verifier of a store together
 
-Evidence records carry `signer_cert_sha256`, the fingerprint of the certificate that signed each image, and the record hash covers it. Versions of `@gsengai/core` before this field existed (0.2.x and earlier) don't know it: they hash those records without it and report a chain break at the first one. The data is intact, but the break is real to anyone reading that report, so plan upgrades around it:
+Since 0.3.0, evidence records carry `signer_cert_sha256`, the fingerprint of the certificate that signed each image, and the record hash covers it. Versions of `@gsengai/core` before 0.3.0 (0.2.x and earlier) don't know it: they hash those records without it and report a chain break at the first one. The data is intact, but the break is real to anyone reading that report, so plan upgrades around it:
 
 - **There is no rollback to 0.2.x once a store has records with `signer_cert_sha256`.** If you need to roll the application back, keep `@gsengai/core` and `@gsengai/c2pa` at the newer version.
 - **Upgrade every writer and verifier of a store at the same time**: signing services, SDK wrappers, `gsengai-audit` exports, and anything that calls `verifyChain()` or `buildAuditReport()`. A verifier left on 0.2.x reports a break as soon as an upgraded signer appends a record.

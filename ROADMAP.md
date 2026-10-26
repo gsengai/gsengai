@@ -4,11 +4,12 @@ This project provides the technical marking and logging layer that supports comp
 
 The roadmap below is a set of directions, not dated commitments. Priorities shift with what people actually need, so the best signal is an issue describing your use case.
 
-## Available today (v0.2)
+## Available today (v0.3)
 
 - Append-only, hash-chained evidence store (SQLite) with JSONL, CSV, and Markdown audit-report exports, and the `gsengai-audit` CLI.
 - Text output logging and fingerprinting through wrappers for the OpenAI, Anthropic, and Vercel AI SDKs. The model response is returned unmodified; fail-open by default.
 - C2PA signing for PNG and JPEG, preserving any existing manifest as a chained ingredient. Cross-platform: native `@contentauth/c2pa-node` on macOS (Apple Silicon), automatic `c2patool` fallback on Linux, Windows, and Intel macs.
+- Signing-certificate traceability: every signed image's evidence record carries the signing certificate's fingerprint, `readManifest` reports whether a manifest was signed with the bundled development certificate, and those certificates are used only on explicit opt-in.
 - A disclosure UI kit (React and plain HTML) with the official EU transparency icons in English, German, and French.
 
 ## Near-term

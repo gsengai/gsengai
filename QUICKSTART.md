@@ -207,8 +207,8 @@ wiped after every request. The demo also renders a live
 [audit report sample](http://localhost:3000/audit-report-sample) — the
 Markdown audit report rendered to HTML.
 
-The demo runs locally only for now; public deployment is prepared (see
-`apps/demo/DEPLOY.md`) but gated on the product name lock.
+The demo runs locally for now. A hosted deployment is prepared (see
+`apps/demo/DEPLOY.md`), but image signing is not yet set up for it.
 
 ## Wire it into your own app
 

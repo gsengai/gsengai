@@ -4,7 +4,7 @@ Thanks for your interest. This project supports compliance with EU AI Act Articl
 
 ## Getting set up
 
-Requirements: Node >= 22 and pnpm.
+Requirements: Node >= 22, pnpm, `git`, `bash`, and `openssl` (some C2PA tests generate throwaway signing certificates). On Linux, Windows, and Intel macs the C2PA tests also need [c2patool](https://github.com/contentauth/c2pa-rs/tree/main/cli) on `PATH`; on Apple Silicon the native backend is used. See the platform note in [docs/production.md](./docs/production.md).
 
 ```sh
 pnpm install
@@ -24,6 +24,8 @@ A few constraints are structural to what this project is. PRs that break them wi
 - **Append-only evidence.** There is no update or delete path on the evidence store, in the API or in SQL. The hash chain stays intact.
 - **Preserve existing provenance.** When signing media that already carries a C2PA manifest, chain it as an ingredient. Never overwrite it.
 - **Wrappers never mutate or block a model response.** The default is fail-open with a loud warning and a lost-record counter; strict mode is opt-in.
+- **Development certificates are opt-in only.** `createImageSigner` signs with the bundled, public dev key only when passed `devCertificates: true`. Never reintroduce a fallback to it.
+- **Old evidence stores keep verifying.** Any change to record hashing or the record shape must keep the 0.2.1 store upgrade test (`packages/core/test/upgrade.test.ts`) passing; never modify or regenerate its fixture.
 - **Positioning.** User-facing strings, docs, and examples say "supports compliance with …". They never claim to make you compliant, ensure, guarantee, or certify anything, and they do not give legal advice.
 
 ## Pull requests
