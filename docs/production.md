@@ -8,7 +8,7 @@ Install the scoped `@gsengai/*` packages from npm. Vendoring the monorepo (clone
 
 ## 2. Signing certificates
 
-The bundled development certificates are untrusted by design: anything signed with them fails public trust validation and is for integration testing only. For production, pass your own certificate chain and key to `createImageSigner` via `certPath` / `keyPath`, using a certificate from a conforming C2PA certificate authority. See [CERTIFICATES.md](./CERTIFICATES.md).
+The bundled development certificates are untrusted by design: anything signed with them fails public trust validation, their private key is public, and they are for integration testing only. They are used only on the explicit opt-in `devCertificates: true`; make sure that flag never reaches your production configuration. For production, pass your own certificate chain and key to `createImageSigner` via `certPath` / `keyPath`, using a certificate from a conforming C2PA certificate authority. With neither, or with only one of the two paths, `createImageSigner` throws at construction, so a missing secret fails your deploy instead of silently signing with the dev key. See [CERTIFICATES.md](./CERTIFICATES.md).
 
 Keys are read from files today. Signing from a KMS or HSM is on the roadmap; until then, protect the key file with your platform's secret handling.
 

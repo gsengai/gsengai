@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: Apache-2.0
 // Image-flow route: signs an uploaded PNG/JPEG with the real @gsengai/c2pa signer
-// (bundled DEV certificates — untrusted by public validators, stated in the UI).
+// (bundled DEV certificates, explicitly opted into — untrusted by public
+// validators, stated in the UI). The demo is keyless by design: it reads no key
+// material from the environment, ever (ADR-0038).
 // Bytes are processed in memory only (buffer in, buffer out) and never
 // persisted (ADR-0029); the evidence record goes to a request-scoped in-memory
 // store that is wiped before the response leaves.
@@ -86,7 +88,11 @@ function signWithEphemeralStore(
   uploadName: string | undefined,
 ): Promise<SignImageResponse | Response> {
   return withEphemeralStore<SignImageResponse | Response>(async (store) => {
-    const signer = createImageSigner({ store, systemId: `${BRAND}-demo/image-flow` });
+    const signer = createImageSigner({
+      store,
+      systemId: `${BRAND}-demo/image-flow`,
+      devCertificates: true,
+    });
     const signed = await signer.signImage({
       input: inputBytes,
       model: "example-image-model",

@@ -7,9 +7,18 @@ honest about that.
 ## The bundled development certificates
 
 The package ships a self-signed ES256 (P-256) certificate chain under
-`packages/c2pa/dev-certs/` so the quickstart and the tests work with zero
-setup. `createImageSigner` falls back to it when you pass no
-`certPath`/`keyPath`, and prints a one-time warning saying so.
+`packages/c2pa/dev-certs/` so the quickstart and the tests work without a
+certificate of your own. `createImageSigner` uses it only when you opt in
+explicitly, and prints a one-time warning when you do:
+
+```ts
+const signer = createImageSigner({ store, systemId: "my-image-feature", devCertificates: true });
+```
+
+There is no silent fallback. `createImageSigner` throws, with a pointer to
+this page, unless you pass either both `certPath` and `keyPath` or neither of
+them plus `devCertificates: true`. Passing only one of the two paths, or
+combining `devCertificates: true` with a path, throws too.
 
 **Manifests signed with the dev certificates fail public trust validation by
 design.** Validators — including [contentcredentials.org/verify](https://contentcredentials.org/verify)
@@ -52,7 +61,8 @@ const signer = createImageSigner({
 });
 ```
 
-No dev-cert warning is printed when both paths are provided.
+No dev-cert warning is printed when both paths are provided. Leave
+`devCertificates` out of production configuration entirely.
 
 ## Scope of the signature
 

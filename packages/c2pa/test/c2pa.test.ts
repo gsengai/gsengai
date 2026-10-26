@@ -2,6 +2,7 @@
 import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { fileURLToPath } from "node:url";
 import {
   createImageSigner,
   GENERATOR_ASSERTION_LABEL,
@@ -21,6 +22,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { type ManifestJson, resolveBackend } from "../src/backend";
 import type { ImageMime } from "../src/mime";
 import { makeJpeg, makePng } from "./fixtures";
+
+// The bundled dev credentials, passed by path as if they were the caller's own.
+const DEV_CERT_FILE = fileURLToPath(new URL("../dev-certs/dev-cert-chain.pem", import.meta.url));
+const DEV_KEY_FILE = fileURLToPath(new URL("../dev-certs/dev-private-key.pem", import.meta.url));
 
 interface ActionShape {
   action: string;
@@ -73,6 +78,7 @@ function newSigner(overrides: { store?: EvidenceStore; failMode?: "open" | "stri
   return createImageSigner({
     store: overrides.store ?? store,
     systemId: "test-system",
+    devCertificates: true,
     failMode: overrides.failMode,
   });
 }
@@ -289,12 +295,78 @@ describe("privacy canary — media (PRD C4). Never delete, skip, or weaken this 
   });
 });
 
+describe("createImageSigner — certificate selection (ADR-0038): no silent dev-key fallback", () => {
+  const DOC = /docs\/CERTIFICATES\.md/u;
+
+  it("throws when neither certPath/keyPath nor devCertificates: true is given", () => {
+    expect(() => createImageSigner({ store, systemId: "s" })).toThrow(TypeError);
+    expect(() => createImageSigner({ store, systemId: "s" })).toThrow(
+      /no signing certificate configured.*devCertificates: true/u,
+    );
+    expect(() => createImageSigner({ store, systemId: "s" })).toThrow(DOC);
+  });
+
+  it("throws when devCertificates is false and no paths are given", () => {
+    expect(() => createImageSigner({ store, systemId: "s", devCertificates: false })).toThrow(
+      /no signing certificate configured/u,
+    );
+  });
+
+  it("throws when only certPath is given — even a readable one", () => {
+    const call = () => createImageSigner({ store, systemId: "s", certPath: DEV_CERT_FILE });
+    expect(call).toThrow(TypeError);
+    expect(call).toThrow(/certPath was given without keyPath/u);
+    expect(call).toThrow(DOC);
+  });
+
+  it("throws when only keyPath is given — even a readable one", () => {
+    const call = () => createImageSigner({ store, systemId: "s", keyPath: DEV_KEY_FILE });
+    expect(call).toThrow(TypeError);
+    expect(call).toThrow(/keyPath was given without certPath/u);
+    expect(call).toThrow(DOC);
+  });
+
+  it("throws when devCertificates: true is combined with certPath, keyPath, or both", () => {
+    for (const paths of [
+      { certPath: DEV_CERT_FILE },
+      { keyPath: DEV_KEY_FILE },
+      { certPath: DEV_CERT_FILE, keyPath: DEV_KEY_FILE },
+    ]) {
+      const call = () =>
+        createImageSigner({ store, systemId: "s", devCertificates: true, ...paths });
+      expect(call).toThrow(TypeError);
+      expect(call).toThrow(/devCertificates: true cannot be combined with certPath\/keyPath/u);
+      expect(call).toThrow(DOC);
+    }
+  });
+
+  it("accepts both paths without the opt-in, and the opt-in alone", async () => {
+    const own = createImageSigner({
+      store,
+      systemId: "s",
+      certPath: DEV_CERT_FILE,
+      keyPath: DEV_KEY_FILE,
+    });
+    expect((await own.signImage({ input: makePng(), model: "m" })).manifestLabel).toMatch(
+      /^urn:c2pa:/u,
+    );
+    expect(() => createImageSigner({ store, systemId: "s", devCertificates: true })).not.toThrow();
+  });
+});
+
 describe("input validation", () => {
   it("createImageSigner requires a non-empty systemId and readable cert paths", () => {
-    expect(() => createImageSigner({ store, systemId: "" })).toThrow(TypeError);
+    expect(() => createImageSigner({ store, systemId: "", devCertificates: true })).toThrow(
+      TypeError,
+    );
     expect(() =>
-      createImageSigner({ store, systemId: "s", certPath: join(dir, "missing.pem") }),
-    ).toThrow();
+      createImageSigner({
+        store,
+        systemId: "s",
+        certPath: join(dir, "missing.pem"),
+        keyPath: DEV_KEY_FILE,
+      }),
+    ).toThrow(/ENOENT/u);
   });
 
   it("signImage requires a non-empty model", async () => {
