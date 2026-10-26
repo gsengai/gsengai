@@ -75,8 +75,14 @@ import { createEvidenceStore } from "@gsengai/core";
 import { createImageSigner, readManifest } from "@gsengai/c2pa";
 
 const store = createEvidenceStore({ path: "./evidence.db" });
-const signer = createImageSigner({ store, systemId: "my-image-feature" });
-// ⚠ no certPath/keyPath given → bundled DEV certificates + a one-time warning
+const signer = createImageSigner({
+  store,
+  systemId: "my-image-feature",
+  // ⚠ explicit opt-in to the bundled DEV certificates: untrusted by public
+  // validators, private key public, a one-time warning. Production passes
+  // certPath + keyPath instead; with neither, createImageSigner throws.
+  devCertificates: true,
+});
 
 const { record, manifestLabel } = await signer.signImage({
   input: "./generated.png",
@@ -85,7 +91,8 @@ const { record, manifestLabel } = await signer.signImage({
 });
 console.log(record);        // evidence record: modality 'image', marking ['c2pa']
 
-// Verify locally: manifest label, ingredient chain, exact validation codes
+// Verify locally: manifest label, ingredient chain, exact validation codes,
+// and signedWithDevCertificate (true here: the bundled dev certificate signed it)
 console.log(await readManifest("./generated.signed.png"));
 ```
 

@@ -8,7 +8,7 @@ import { ChainBadge, EvidenceRecordView } from "../components/EvidenceRecordView
 import { ImageFlow } from "../components/ImageFlow";
 import { LimitsBlock } from "../components/LimitsBlock";
 import { TextFlow } from "../components/TextFlow";
-import { DEV_CERT_CAVEAT, S9_LIMIT_ITEMS } from "../lib/copy";
+import { DEV_CERT_CAVEAT, devCertificateNote, S9_LIMIT_ITEMS } from "../lib/copy";
 
 function escapeHtml(text: string): string {
   return text
@@ -42,6 +42,15 @@ describe("render/a11y smoke (both flows)", () => {
     expect(html).toContain(escapeHtml(DEV_CERT_CAVEAT));
   });
 
+  it("the dev-cert note distinguishes all three readManifest states; null never reads as a no", () => {
+    const notes = [true, false, null].map(devCertificateNote);
+    expect(new Set(notes).size).toBe(3);
+    expect(devCertificateNote(true)).toContain("bundled development certificate");
+    expect(devCertificateNote(false)).toMatch(/^not /u);
+    expect(devCertificateNote(null)).toMatch(/could not be determined/u);
+    expect(devCertificateNote(null)).not.toMatch(/^not /u);
+  });
+
   it("ChainBadge announces its outcome via role=status", () => {
     const ok = renderToStaticMarkup(<ChainBadge chain={{ ok: true, checked: 3 }} />);
     expect(ok).toContain('role="status"');
@@ -68,6 +77,7 @@ describe("render/a11y smoke (both flows)", () => {
           marking_methods: ["logging"],
           manifest_ref: null,
           disclosure_context: null,
+          signer_cert_sha256: null,
           prev_hash: null,
           record_hash: "c".repeat(64),
         }}

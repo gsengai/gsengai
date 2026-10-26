@@ -21,8 +21,14 @@ import { createEvidenceStore } from "@gsengai/core";
 import { createImageSigner, readManifest } from "@gsengai/c2pa";
 
 const store = createEvidenceStore({ path: "./evidence.db" });
-const signer = createImageSigner({ store, systemId: "my-image-feature" });
-// ⚠ no certPath/keyPath given → bundled DEV certificates + a one-time warning
+const signer = createImageSigner({
+  store,
+  systemId: "my-image-feature",
+  // ⚠ explicit opt-in to the bundled DEV certificates: untrusted by public
+  // validators, private key public, a one-time warning. Production passes
+  // certPath + keyPath instead; with neither, createImageSigner throws.
+  devCertificates: true,
+});
 
 const { record, manifestLabel } = await signer.signImage({
   input: "./generated.png",
@@ -31,13 +37,14 @@ const { record, manifestLabel } = await signer.signImage({
 });
 console.log(record); // evidence record: modality 'image', marking ['c2pa']
 
-// Verify locally: manifest label, ingredient chain, exact validation codes
+// Verify locally: manifest label, ingredient chain, exact validation codes,
+// and signedWithDevCertificate (true here: the bundled dev certificate signed it)
 console.log(await readManifest("./generated.signed.png"));
 ```
 
 The manifest carries a `c2pa.created` action with `digitalSourceType: trainedAlgorithmicMedia`, the model identifier, and a timestamp. If the input already carries a C2PA manifest, `signImage` never overwrites it — the existing manifest is chained as the parent ingredient and stays resolvable. Signing and reading are fully offline: no OCSP, no remote manifest fetches, no TSA.
 
-The bundled development certificates are **untrusted by public validators by design** — for integration testing only. For production, pass your own `certPath` / `keyPath`; see [docs/CERTIFICATES.md](https://github.com/gsengai/gsengai/blob/main/docs/CERTIFICATES.md).
+The bundled development certificates are **untrusted by public validators by design** and their private key is public — for integration testing only, and only when you opt in with `devCertificates: true`. For production, pass your own `certPath` and `keyPath`. Any other combination (neither, only one of the two paths, or the opt-in together with a path) throws; there is no silent fallback to the dev key. See [docs/CERTIFICATES.md](https://github.com/gsengai/gsengai/blob/main/docs/CERTIFICATES.md).
 
 Manifests can be removed downstream by re-encoding, screenshots, or platform uploads — that is exactly why the evidence log exists.
 

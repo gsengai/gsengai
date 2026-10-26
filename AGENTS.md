@@ -10,13 +10,17 @@ Guidance for AI-assisted work in this repository — and a briefing for human co
 4. **Ingredient preservation**: never overwrite an existing C2PA manifest — chain it as a parent ingredient (PRD B3, ADR-0015).
 5. **Wrappers never mutate or block model responses**: hash in memory, append a record, return the response unmodified. Fail-open is the default (warn + lost-record counter); `failMode: 'strict'` is opt-in.
 6. **Green gates before every commit**: `pnpm test`, `pnpm build`, `pnpm lint`, `pnpm typecheck` — all four, no exceptions.
+7. **Dev certificates are opt-in only**: `createImageSigner` signs with the bundled dev key only when passed `devCertificates: true`, and throws for every other incomplete configuration. Never reintroduce a fallback to the bundled key (ADR-0038). Enforced by the certificate-selection tests in `packages/c2pa/test/c2pa.test.ts`.
+8. **Old stores keep verifying**: a null `signer_cert_sha256` is left out of the hashed record body. Any change to hashing or the record shape must keep the 0.2.1 fixture upgrade test (`packages/core/test/upgrade.test.ts`) passing. Never modify or regenerate its fixture, `packages/core/test/fixtures/store-core-0.2.1.db` (ADR-0039).
 
 ## Sharp edges
 
 - **Never import `@contentauth/c2pa-node` directly** — anywhere, including tests. It loads its native binary lazily and only works on macOS arm64; all access goes through the backend resolver in `packages/c2pa/src/backend.ts` (native or c2patool fallback — ADR-0035). A direct import passes locally on a Mac and breaks Linux CI.
 - Keep the `VERSION` constant in `packages/c2pa/src/constants.ts` in step with the package version on release — it is recorded inside every signed manifest.
+- Bump `@gsengai/core` and `@gsengai/c2pa` together and publish core first: c2pa's dependency range on core is written from core's version at pack time (`RELEASING.md`).
 - Publishing is manual — see `RELEASING.md` (including the 24-hour tombstone rule for interrupted publishes). Do not attempt to automate publishing; the blockers are tracked in issue #2.
 - The bundled dev certificates are intentionally untrusted; keep every place that touches them honest about it.
+- The secret-scanner allowlist (`.gitleaks.toml`, `.github/secret_scanning.yml`) covers exactly `packages/c2pa/dev-certs/dev-private-key.pem`. Never widen it to a directory, a glob, or `*.pem`: an alert on any other file is a real incident (`SECURITY.md`). The guard test `packages/c2pa/test/secret-scan-allowlist.test.ts` enforces this (ADR-0037).
 
 ## Orientation
 

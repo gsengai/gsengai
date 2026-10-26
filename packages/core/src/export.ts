@@ -4,7 +4,11 @@
 // privacy posture (PRD C4) extends to every export path, canary-enforced.
 import type { ChainVerification, EvidenceRecord, ExportFilter } from "./types";
 
-/** Fixed CSV column order — matches the §4 record schema exactly. */
+/**
+ * Fixed CSV column order — the §4 record schema, in the order ADR-0027 pinned;
+ * `signer_cert_sha256` (ADR-0039) is appended last so existing column
+ * positions never move.
+ */
 export const CSV_COLUMNS = [
   "id",
   "ts",
@@ -20,6 +24,7 @@ export const CSV_COLUMNS = [
   "disclosure_context",
   "prev_hash",
   "record_hash",
+  "signer_cert_sha256",
 ] as const;
 
 /** RFC 4180 field escaping: quote when the value contains `"`, `,`, or line breaks. */

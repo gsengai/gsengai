@@ -2,15 +2,14 @@
 import { readFileSync } from "node:fs";
 import { readFile } from "node:fs/promises";
 import { basename } from "node:path";
-import { fileURLToPath } from "node:url";
 import { type EvidenceRecord, type EvidenceStore, type FailMode, safeAppend } from "@gsengai/core";
 import { resolveBackend } from "./backend";
+import { DEV_CERT_PATH, DEV_KEY_PATH, leafCertificateSha256 } from "./cert";
 import { detectImageMime } from "./mime";
 
 export { GENERATOR_ASSERTION_LABEL, TRAINED_ALGORITHMIC_MEDIA } from "./constants";
 
-const DEV_CERT_PATH = fileURLToPath(new URL("../dev-certs/dev-cert-chain.pem", import.meta.url));
-const DEV_KEY_PATH = fileURLToPath(new URL("../dev-certs/dev-private-key.pem", import.meta.url));
+const CERTIFICATES_DOC = "https://github.com/gsengai/gsengai/blob/main/docs/CERTIFICATES.md";
 
 let devCertWarningShown = false;
 
@@ -18,10 +17,22 @@ export interface CreateImageSignerOptions {
   store: EvidenceStore;
   /** Integrator's system/feature identifier — persisted as `system_id` (PRD §4). */
   systemId: string;
-  /** PEM certificate chain (leaf first). Defaults to the bundled DEV certificates. */
+  /**
+   * PEM certificate chain (leaf first). Required, together with `keyPath`,
+   * unless `devCertificates` is true.
+   */
   certPath?: string;
-  /** PKCS#8 PEM private key for the leaf certificate. Defaults to the bundled DEV key. */
+  /**
+   * PKCS#8 PEM private key for the leaf certificate. Required, together with
+   * `certPath`, unless `devCertificates` is true.
+   */
   keyPath?: string;
+  /**
+   * Explicit opt-in to the bundled DEVELOPMENT certificates (ADR-0038): self-signed,
+   * untrusted by public validators, private key public — integration testing only.
+   * Prints a one-time warning. Cannot be combined with `certPath`/`keyPath`.
+   */
+  devCertificates?: boolean;
   /**
    * Path to a c2patool binary for the cross-platform fallback backend.
    * Defaults to $GSENGAI_C2PATOOL_PATH, then `c2patool` on PATH. Only
@@ -67,15 +78,55 @@ export interface ImageSigner {
   signImage(options: SignImageOptions): Promise<SignImageResult>;
 }
 
-function warnIfDevCerts(certPath: string | undefined, keyPath: string | undefined): void {
-  if ((certPath && keyPath) || devCertWarningShown) {
+function warnDevCertificates(): void {
+  if (devCertWarningShown) {
     return;
   }
   devCertWarningShown = true;
   console.warn(
-    "[gsengai] Using the bundled DEVELOPMENT certificates: signed manifests are UNTRUSTED " +
-      "by public validators and are for integration testing only. Provide certPath/keyPath " +
-      "with your own signing certificate for production — see docs/CERTIFICATES.md.",
+    "[gsengai] Signing with the bundled DEVELOPMENT certificates (devCertificates: true): " +
+      "signed manifests are UNTRUSTED by public validators and the private key is public, " +
+      "so they are for integration testing only. Provide certPath/keyPath with your own " +
+      `signing certificate for production — see ${CERTIFICATES_DOC}`,
+  );
+}
+
+/**
+ * Credential selection (ADR-0038): either both of `certPath`/`keyPath`, or
+ * neither plus `devCertificates: true`. Everything else throws before any file
+ * is read — there is no silent fallback to the dev key.
+ */
+function resolveCredentials(options: CreateImageSignerOptions): {
+  certPath: string;
+  keyPath: string;
+} {
+  const { certPath, keyPath, devCertificates } = options;
+  if (devCertificates === true) {
+    if (certPath !== undefined || keyPath !== undefined) {
+      throw new TypeError(
+        "gsengai: devCertificates: true cannot be combined with certPath/keyPath — pass your " +
+          "own certPath and keyPath, or devCertificates: true alone for the bundled, untrusted " +
+          `development certificates. See ${CERTIFICATES_DOC}`,
+      );
+    }
+    warnDevCertificates();
+    return { certPath: DEV_CERT_PATH, keyPath: DEV_KEY_PATH };
+  }
+  if (certPath !== undefined && keyPath !== undefined) {
+    return { certPath, keyPath };
+  }
+  if (certPath !== undefined || keyPath !== undefined) {
+    const [given, missing] =
+      certPath !== undefined ? ["certPath", "keyPath"] : ["keyPath", "certPath"];
+    throw new TypeError(
+      `gsengai: ${given} was given without ${missing} — pass both your certificate chain ` +
+        `(certPath) and its private key (keyPath). See ${CERTIFICATES_DOC}`,
+    );
+  }
+  throw new TypeError(
+    "gsengai: no signing certificate configured — pass certPath and keyPath for your own " +
+      "certificate, or devCertificates: true to sign with the bundled, untrusted development " +
+      `certificates (integration testing only). See ${CERTIFICATES_DOC}`,
   );
 }
 
@@ -84,12 +135,12 @@ export function createImageSigner(options: CreateImageSignerOptions): ImageSigne
   if (typeof systemId !== "string" || systemId.length === 0) {
     throw new TypeError("gsengai: systemId must be a non-empty string");
   }
-  warnIfDevCerts(options.certPath, options.keyPath);
-  const certPath = options.certPath ?? DEV_CERT_PATH;
-  const keyPath = options.keyPath ?? DEV_KEY_PATH;
+  const { certPath, keyPath } = resolveCredentials(options);
   // Read eagerly so a bad path fails at construction, not at first sign.
   const certBytes = readFileSync(certPath);
   const keyBytes = readFileSync(keyPath);
+  // Recorded on every signing as signer_cert_sha256 (ADR-0039).
+  const signerCertSha256 = leafCertificateSha256(certBytes, "certPath");
 
   return {
     async signImage(sign: SignImageOptions): Promise<SignImageResult> {
@@ -140,6 +191,7 @@ export function createImageSigner(options: CreateImageSignerOptions): ImageSigne
           outputBytes: signedBytes,
           manifestRef: manifestLabel,
           markingMethods: ["c2pa"],
+          signerCertSha256,
           promptHash: sign.promptHash ?? null,
           disclosureContext: sign.disclosureContext ?? null,
         },

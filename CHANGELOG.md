@@ -2,6 +2,25 @@
 
 All notable changes to this project are documented here. The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project aims to follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Breaking changes
+
+- **`@gsengai/c2pa`: the bundled development certificates are now an explicit opt-in.** `createImageSigner` no longer falls back to them when `certPath`/`keyPath` are missing, and no longer pairs your certificate or key file with a dev file when only one path is given. Pass both `certPath` and `keyPath`, or neither plus `devCertificates: true`. Every other combination throws at construction, pointing to `docs/CERTIFICATES.md`. The one-time warning now fires on the opt-in. Migration: add `devCertificates: true` where you relied on the default (tests, local demos), and nowhere in production. (ADR-0038)
+- **`@gsengai/core`: new evidence record field `signer_cert_sha256`** (`string | null`): the SHA-256 fingerprint of the leaf certificate that signed an image. `@gsengai/c2pa` sets it on every signing; text records leave it null. Existing stores upgrade in place when opened (one nullable column is added, no existing row is modified) and keep passing `verifyChain()`. No existing `record_hash` changes, because a null value is left out of the hashed body. JSONL exports include the field; CSV exports gain it as a new last column (the existing column order is unchanged). Code that builds `EvidenceRecord` objects or matches record keys or CSV columns exactly needs the new field. Do not downgrade `@gsengai/core` after records carry the field: earlier versions report a chain break at the first such record. (ADR-0039)
+
+### Added
+
+- `readManifest` reports `signedWithDevCertificate`, matched by certificate fingerprint: `true` when the active manifest was signed with the bundled development certificate, `false` when it was signed with another certificate, and `null` when the signing certificate cannot be determined (treat as unknown, not as "not dev-signed"). The certificate is read from the asset's single embedded manifest store and must match the signer the validator reported (serial number and subject organization), so the flag always describes the signature the validator checked. (ADR-0039, ADR-0040)
+- Secret-scanner configuration: `.gitleaks.toml` and `.github/secret_scanning.yml` allowlist exactly the public dev key file, and a test fails if any other tracked file contains a PEM private key. (ADR-0037)
+
+### Documentation
+
+- `SECURITY.md`: scanner alerts on the dev key are expected; any other private key in the repository or a published package is an incident to report privately.
+- `docs/CERTIFICATES.md`: never add the dev root to a C2PA trust list; how to find dev-signed outputs with `signer_cert_sha256` and `readManifest`.
+- `docs/production.md`: no rollback to 0.2.x once a store has records with `signer_cert_sha256`; upgrade every writer and verifier of a store together.
+- `RELEASING.md`: bump `@gsengai/core` and `@gsengai/c2pa` together (with the c2pa `VERSION` constant), check c2pa's packed range on core, and publish core first.
+
 ## [0.2.1] — 2026-07-12
 
 Docs-only release.

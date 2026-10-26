@@ -47,6 +47,9 @@ function appendText(
   });
 }
 
+/** Example leaf-certificate fingerprint, as @gsengai/c2pa records on every signing. */
+const SIGNER_CERT_SHA256 = sha256Hex("example leaf certificate DER");
+
 function appendImage(bytes: Uint8Array, manifestRef: string): EvidenceRecord {
   return store.append({
     modality: "image",
@@ -55,6 +58,7 @@ function appendImage(bytes: Uint8Array, manifestRef: string): EvidenceRecord {
     outputBytes: bytes,
     manifestRef,
     markingMethods: ["c2pa"],
+    signerCertSha256: SIGNER_CERT_SHA256,
   });
 }
 
@@ -114,6 +118,24 @@ describe("CSV export (PRD C3)", () => {
     expect(count).toBe(3);
     expect(rows).toHaveLength(3);
     expect(header).toEqual([...CSV_COLUMNS]);
+    // ADR-0027 pins the original column order; ADR-0039 only appends.
+    expect(header).toEqual([
+      "id",
+      "ts",
+      "modality",
+      "model",
+      "system_id",
+      "prompt_hash",
+      "output_hash",
+      "output_hash_normalized",
+      "hash_version",
+      "marking_methods",
+      "manifest_ref",
+      "disclosure_context",
+      "prev_hash",
+      "record_hash",
+      "signer_cert_sha256",
+    ]);
 
     const known = records[1] as EvidenceRecord;
     const row = rows[1] as string[];
@@ -131,6 +153,8 @@ describe("CSV export (PRD C3)", () => {
     expect(field("manifest_ref")).toBe("");
     expect(field("prev_hash")).toBe(known.prev_hash);
     expect(field("record_hash")).toBe(known.record_hash);
+    expect(field("signer_cert_sha256")).toBe(""); // text: null -> empty field
+    expect(row).toHaveLength(CSV_COLUMNS.length);
   });
 
   it("system_id filter returns only matching rows", async () => {
@@ -300,8 +324,11 @@ describe("interleaved text + image records in both exports", () => {
     expect(imageRow[idx("manifest_ref")]).toBe("urn:c2pa:interleaved");
     expect(imageRow[idx("marking_methods")]).toBe('["c2pa"]');
     expect(imageRow[idx("output_hash_normalized")]).toBe("");
+    expect(imageRow[idx("signer_cert_sha256")]).toBe(SIGNER_CERT_SHA256);
+    expect(imageRow.at(-1)).toBe(SIGNER_CERT_SHA256); // last column
     expect(textRow[idx("modality")]).toBe("text");
     expect(textRow[idx("manifest_ref")]).toBe("");
+    expect(textRow[idx("signer_cert_sha256")]).toBe("");
 
     const { markdown } = store.buildAuditReport();
     expect(markdown).toContain(`\`${image.output_hash}\``);

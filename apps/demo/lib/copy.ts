@@ -37,6 +37,19 @@ export const DEV_CERT_CAVEAT =
 
 export const VERIFY_URL = "https://contentcredentials.org/verify";
 
+/**
+ * readManifest's tri-state dev-cert flag in words (ADR-0040). Null means the
+ * signing certificate could not be determined, so it never reads as "no".
+ */
+export function devCertificateNote(signedWithDevCertificate: boolean | null): string {
+  if (signedWithDevCertificate === null) {
+    return "could not be determined from the embedded manifest — unknown, not a no";
+  }
+  return signedWithDevCertificate
+    ? "the bundled development certificate (matched by fingerprint)"
+    : "not the bundled development certificate";
+}
+
 /** Privacy architecture, stated plainly in the UI (ADR-0029). */
 export const PRIVACY_TEXT_FLOW =
   "Your text is hashed in your browser with Web Crypto — it never leaves this page. " +

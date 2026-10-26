@@ -6,7 +6,9 @@ export type Modality = "text" | "image" | "audio" | "video";
 /**
  * Evidence record schema v1 (PRD §4). Field names are snake_case because this is
  * the persisted, exported, hash-covered wire format — not an internal API shape.
- * `record_hash` is the SHA-256 of the canonical JSON of all other fields;
+ * `record_hash` is the SHA-256 of the canonical JSON of all other fields, with
+ * one exception: `signer_cert_sha256` is left out of the hashed body when it is
+ * null (ADR-0039), so records written before the field existed verify unchanged.
  * `prev_hash` chains it to the previous record (null for the genesis record).
  */
 export interface EvidenceRecord {
@@ -22,6 +24,12 @@ export interface EvidenceRecord {
   marking_methods: string[];
   manifest_ref: string | null;
   disclosure_context: string | null;
+  /**
+   * SHA-256 fingerprint (lowercase hex) of the leaf certificate that signed the
+   * output's C2PA manifest; null for unsigned outputs such as text (ADR-0039).
+   * Public certificate metadata — it identifies, e.g., dev-cert-signed outputs.
+   */
+  signer_cert_sha256: string | null;
   prev_hash: string | null;
   record_hash: string;
 }
@@ -47,6 +55,12 @@ export type AppendEvidenceInput = {
   disclosureContext?: string | null;
   /** Reference to the C2PA manifest (active manifest label) for signed media (PRD B6). */
   manifestRef?: string | null;
+  /**
+   * SHA-256 fingerprint (64 lowercase hex chars) of the leaf certificate that
+   * signed the output (ADR-0039). Set by `@gsengai/c2pa` on every signing; leave
+   * unset for unsigned outputs.
+   */
+  signerCertSha256?: string | null;
   /** Defaults to `['logging']`. */
   markingMethods?: string[];
 } & (

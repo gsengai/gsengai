@@ -1,0 +1,14 @@
+# gitleaks configuration (ADR-0037): the built-in default rules, plus an
+# allowlist for exactly one file — the bundled C2PA development signing key,
+# which is public by design and protects nothing (ADR-0016). Any other private
+# key in this repository is a real finding; see SECURITY.md. The allowlist is
+# pinned by packages/c2pa/test/secret-scan-allowlist.test.ts — never widen it
+# to a directory, a glob, or *.pem.
+title = "gsengai"
+
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = "Bundled C2PA development signing key, public by design (ADR-0016)"
+paths = ['''^packages/c2pa/dev-certs/dev-private-key\.pem$''']

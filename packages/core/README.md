@@ -37,6 +37,8 @@ store.buildAuditReport({ path: "./audit-report.md" }); // hand-to-counsel Markdo
 
 Every record carries `prev_hash` and `record_hash`, so edits, deletions, and splices are detectable (`verifyChain()` reports the first break — detectable, not prevented). There is no update or delete API by design.
 
+**No rollback to 0.2.x** once a store has records with `signer_cert_sha256` (written by `@gsengai/c2pa` signings): 0.2.x reports a chain break at those records, so upgrade every writer and verifier of a store together — see [production notes §7](https://github.com/gsengai/gsengai/blob/main/docs/production.md#7-upgrade-every-writer-and-verifier-of-a-store-together).
+
 Most apps don't call `append` directly — the SDK wrappers do it automatically: [@gsengai/openai](https://www.npmjs.com/package/@gsengai/openai), [@gsengai/anthropic](https://www.npmjs.com/package/@gsengai/anthropic), [@gsengai/ai-sdk](https://www.npmjs.com/package/@gsengai/ai-sdk).
 
 ## Documentation
