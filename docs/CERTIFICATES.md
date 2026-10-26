@@ -27,9 +27,54 @@ credential as untrusted (`signingCredential.untrusted`), because the issuing
 CA is not on any C2PA trust list. Locally, `readManifest` reports exactly the
 same status codes; nothing in this library pretends otherwise.
 
-Use the dev certificates for integration testing only. The private key is
-committed to the repository — it protects nothing and must protect nothing.
+Use the dev certificates for integration testing only. The signing key is
+committed to the repository and ships in the published `@gsengai/c2pa`
+package: it is public, it protects nothing, and it must protect nothing.
 Regenerate the pair anytime with `scripts/gen-dev-certs.sh`.
+
+**Never add the dev root certificate to a C2PA trust list**, a validator's
+trust anchors, or your own trust configuration, and never trust the dev leaf
+directly either. The signing key that the dev root certifies is public, so
+trusting the root would make anything anyone signs with that key validate as
+trusted.
+
+### Finding dev-signed outputs
+
+Every image signing records the SHA-256 fingerprint of the leaf signing
+certificate in the evidence record as `signer_cert_sha256` (null for text
+records). To find everything signed with the dev certificate, compute the dev
+leaf's fingerprint from the chain your installed package ships (the first
+certificate in the file) and compare:
+
+```ts
+import { X509Certificate } from "node:crypto";
+import { readFileSync } from "node:fs";
+
+// In a clone of this repository: packages/c2pa/dev-certs/dev-cert-chain.pem
+const devLeaf = new X509Certificate(
+  readFileSync("node_modules/@gsengai/c2pa/dev-certs/dev-cert-chain.pem"),
+);
+const devSha256 = devLeaf.fingerprint256.replaceAll(":", "").toLowerCase();
+
+await store.exportJsonl("./evidence.jsonl");
+const devSigned = readFileSync("./evidence.jsonl", "utf8")
+  .trim()
+  .split("\n")
+  .map((line) => JSON.parse(line))
+  .filter((record) => record.signer_cert_sha256 === devSha256);
+```
+
+(`openssl x509 -in dev-cert-chain.pem -noout -fingerprint -sha256` prints the
+same fingerprint in upper case with colons.) The CSV export (`exportCsv`, or
+`gsengai-audit export --format csv`) carries the same value in its last
+column. Records appended before `signer_cert_sha256` existed carry null and
+cannot be classified from the store alone.
+
+For a single asset, `readManifest` reports `signedWithDevCertificate: true`
+when the active manifest was signed with the bundled dev certificate, matched
+by leaf-certificate fingerprint against the chain shipped with the installed
+package. It looks at the active manifest only, not at parent ingredients, and
+says nothing about signature validity (see `validationStatusCodes` for that).
 
 ## The production path
 

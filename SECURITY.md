@@ -15,6 +15,7 @@ This project is pre-1.0. Security fixes land on the latest published version.
 Relevant to how this tool works:
 
 - **The bundled development certificates are intentionally untrusted.** Anything signed with them fails public trust validation by design, and the docs say so. That is expected behavior for integration testing, not a vulnerability. Production signing requires your own certificates. See [docs/CERTIFICATES.md](./docs/CERTIFICATES.md).
+- **The private key under `packages/c2pa/dev-certs/` is public by design and protects nothing.** It also ships in the published `@gsengai/c2pa` package, so secret-scanner alerts on that file are expected. Any other private key in this repository or in a published package is a real incident: please report it privately as described above.
 - **The evidence store keeps hashes and metadata only.** Raw prompts and outputs are never persisted. If you find a path that writes raw content to disk, that is a bug we want to hear about.
 - **C2PA manifests can be removed downstream** by re-encoding, screenshots, or a platform re-upload. This is a known limitation of content marking, documented for users, not a defect in the signing itself.
 

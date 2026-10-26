@@ -37,7 +37,8 @@ const { record, manifestLabel } = await signer.signImage({
 });
 console.log(record); // evidence record: modality 'image', marking ['c2pa']
 
-// Verify locally: manifest label, ingredient chain, exact validation codes
+// Verify locally: manifest label, ingredient chain, exact validation codes,
+// and signedWithDevCertificate (true here: the bundled dev certificate signed it)
 console.log(await readManifest("./generated.signed.png"));
 ```
 
