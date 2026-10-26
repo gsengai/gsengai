@@ -8,7 +8,8 @@ import {
 } from "@gsengai/core";
 
 /**
- * Evidence-logging wrapper for the OpenAI Node SDK (peer: openai@^6).
+ * Evidence-logging wrapper for the OpenAI Node SDK (peer: openai ^6 || ^7; both are
+ * exercised against the real SDK in test/sdk-compat.test.ts).
  *
  * Captures `chat.completions.create` and `responses.create`, streaming and
  * non-streaming. Per PRD A2/A3 the wrapper hashes the generated text in memory,

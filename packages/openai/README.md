@@ -10,7 +10,7 @@ Part of [gsengai](https://github.com/gsengai/gsengai), open-source transparency 
 pnpm add @gsengai/openai @gsengai/core
 ```
 
-Requires Node ≥ 22.
+Requires Node ≥ 22 and `openai` 6 or 7.
 
 ## Usage
 

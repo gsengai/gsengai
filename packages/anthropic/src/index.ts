@@ -8,7 +8,8 @@ import {
 } from "@gsengai/core";
 
 /**
- * Evidence-logging wrapper for the Anthropic TypeScript SDK (peer: @anthropic-ai/sdk).
+ * Evidence-logging wrapper for the Anthropic TypeScript SDK (peer: @anthropic-ai/sdk
+ * >=0.39 <2, 0.x and 1.x exercised against the real SDK in test/sdk-compat.test.ts).
  *
  * Captures `messages.create` (stream and non-stream) and the `messages.stream()`
  * helper. Text blocks are concatenated in order with no separators. Per PRD A2/A3

@@ -33,10 +33,10 @@
     "@gsengai/core": "workspace:^"
   },
   "peerDependencies": {
-    "openai": "^6.0.0"
+    "openai": "^6.0.0 || ^7.0.0"
   },
   "devDependencies": {
-    "openai": "^6.0.0",
+    "openai": "^7.45.0",
     "tsup": "^8.0.0",
     "typescript": "^5.6.0"
   },
