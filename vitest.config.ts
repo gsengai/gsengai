@@ -23,6 +23,11 @@ export default defineConfig({
   test: {
     environment: "node",
     pool: "forks",
+    // Real C2PA signing (native binary or c2patool subprocess) took ~1–1.3 s
+    // per signing on a capacity-constrained macOS CI runner, and several tests
+    // sign three or four times — past the 5 s default. Tests that assert their
+    // own time bounds (jumbf-adversarial.test.ts) keep those bounds.
+    testTimeout: 30_000,
     include: ["packages/*/test/**/*.test.{ts,tsx}", "apps/*/test/**/*.test.{ts,tsx}"],
   },
 });
