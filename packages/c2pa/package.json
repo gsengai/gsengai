@@ -37,7 +37,7 @@
   "devDependencies": {
     "@contentauth/c2pa-types": "^0.7.6",
     "tsup": "^8.0.0",
-    "typescript": "^5.6.0"
+    "typescript": "^7.0.2"
   },
   "author": "Dominik Ertl",
   "keywords": [
